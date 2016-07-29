@@ -29,6 +29,21 @@ struct basic_event
     }
 };
 
+template <typename _context, typename _new_state>
+struct transit_event
+    : public i_event
+{
+    _context* m_ctx;
+
+    transit_event(_context* ctx) : m_ctx(ctx){}
+    virtual ~transit_event(){}
+
+    virtual void call() override
+    {
+        m_ctx->m_current_state->immediate_transit<_new_state>();
+    }
+};
+
 struct event_processor
 {
     event_processor(){}
@@ -65,9 +80,10 @@ struct st_event_processor
             return;
 
         i_event* ev = m_queue.front();
+        m_queue.pop();
+
         ev->call();
         delete ev;
-        m_queue.pop();
     }
 
     void handle_all() override
@@ -109,6 +125,18 @@ struct mt_event_processor
         m_cv.notify_one();
     }
 
+    template <typename _context, typename _new_state>
+    void post_transit(_context* context)
+    {
+        {   // lock scope
+            std::lock_guard<std::mutex> lock(m_guard_mx);
+            i_event* ev = new transit_event<_context,_new_state>(context);
+            m_queue.push(ev);
+        }
+
+        m_cv.notify_one();
+    }
+
     bool has_next() override
     {
         std::lock_guard<std::mutex> lock(m_guard_mx);
@@ -117,15 +145,20 @@ struct mt_event_processor
 
     void handle_next() override
     {
-        std::lock_guard<std::mutex> lock(m_guard_mx);
+        i_event* ev = nullptr;
 
-        if (m_queue.size() == 0)
-            return;
+        {   // lock scope
+            std::lock_guard<std::mutex> lock(m_guard_mx);
 
-        i_event* ev = m_queue.front();
+            if (m_queue.size() == 0)
+                return;
+
+            ev = m_queue.front();
+            m_queue.pop();
+        }
+
         ev->call();
         delete ev;
-        m_queue.pop();
     }
 
     void handle_all() override
