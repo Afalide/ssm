@@ -1,0 +1,7 @@
+
+#pragma once
+
+#define TINYSM_RESULT_EVENT_DONE           1
+#define TINYSM_RESULT_TRANSIT_DONE         4
+#define TINYSM_RESULT_REQ_PROCESSOR_START  2
+#define TINYSM_RESULT_REQ_PROCESSOR_STOP   3

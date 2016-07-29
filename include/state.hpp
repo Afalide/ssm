@@ -1,14 +1,6 @@
 
 #pragma once
 
-//struct istate
-//{
-//    istate() {}
-//    virtual ~istate() {}
-//};
-
-//struct icontext;
-
 #include <context.hpp>
 
 template <typename _state>
@@ -29,5 +21,10 @@ struct state
     void post_transit()
     {
         //post transit event
+    }
+
+    int event_done()
+    {
+        return TINYSM_RESULT_EVENT_DONE;
     }
 };

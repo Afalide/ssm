@@ -3,14 +3,7 @@
 
 #include <cassert>
 #include <has_handle.hpp>
-
-//struct icontext
-//{
-//    icontext(){}
-//    virtual ~icontext(){}
-//};
-
-//struct state;
+#include <event_result.hpp>
 
 template <typename _state>
 struct context
@@ -41,11 +34,11 @@ struct context
 
         m_current_state = new _new_state;
         m_current_state->m_context = this;
-        return 123;
+        return TINYSM_RESULT_TRANSIT_DONE;
     }
 
     template <typename _event>
-    int current_state_handle (_event ev)
+    int perform_current_state_handle (_event ev)
     {
         assert(nullptr != m_current_state);
         return m_current_state->handle(ev);

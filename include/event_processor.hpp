@@ -5,12 +5,13 @@
 //#include <thread>
 #include <condition_variable>
 #include <mutex>
+#include <event_result.hpp>
 
 struct i_event
 {
     i_event(){}
     virtual ~i_event(){}
-    virtual void call() = 0;
+    virtual int call() = 0;
 };
 
 template <typename _context, typename _event_value>
@@ -23,9 +24,9 @@ struct basic_event
     basic_event(_context* ctx, _event_value ev) : m_ctx(ctx), m_ev(ev) {}
     virtual ~basic_event(){}
 
-    virtual void call() override
+    virtual int call() override
     {
-        m_ctx->current_state_handle(m_ev);
+        return m_ctx->perform_current_state_handle(m_ev);
     }
 };
 
@@ -38,9 +39,9 @@ struct transit_event
     transit_event(_context* ctx) : m_ctx(ctx){}
     virtual ~transit_event(){}
 
-    virtual void call() override
+    virtual int call() override
     {
-        m_ctx->m_current_state->immediate_transit<_new_state>();
+        return m_ctx->perform_transit<_new_state>();
     }
 };
 
@@ -76,6 +77,7 @@ struct st_event_processor
 
     void handle_next() override
     {
+        std::cout << "handle_next" << std::endl;
         if (m_queue.size() == 0)
             return;
 
@@ -157,8 +159,30 @@ struct mt_event_processor
             m_queue.pop();
         }
 
-        ev->call();
+        int result = ev->call();
         delete ev;
+
+        switch(result)
+        {
+            case TINYSM_RESULT_EVENT_DONE:
+                std::cout << "TINYSM_RESULT_EVENT_DONE" << std::endl;
+                break;
+
+            case TINYSM_RESULT_TRANSIT_DONE:
+                std::cout << "TINYSM_RESULT_TRANSIT_DONE" << std::endl;
+                break;
+
+            case TINYSM_RESULT_REQ_PROCESSOR_START:
+                std::cout << "TINYSM_RESULT_REQ_PROCESSOR_START" << std::endl;
+                break;
+
+            case TINYSM_RESULT_REQ_PROCESSOR_STOP:
+                std::cout << "TINYSM_RESULT_REQ_PROCESSOR_STOP" << std::endl;
+                break;
+
+            default:
+                std::cout << "unknown event result" << std::endl;
+        }
     }
 
     void handle_all() override
