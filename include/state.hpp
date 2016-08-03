@@ -17,14 +17,13 @@ struct state
         return m_context->perform_transit<_new_state>();
     }
 
-    template <typename _new_state>
-    void post_transit()
-    {
-        //post transit event
-    }
-
     int event_done()
     {
-        return TINYSM_RESULT_EVENT_DONE;
+        return TINYSM_RESULT_BASIC_EVENT_DONE;
     }
+
+    //int stop_processing()
+    //{
+    //    return TINYSM_RESULT_REQ_PROCESSOR_STOP;
+    //}
 };

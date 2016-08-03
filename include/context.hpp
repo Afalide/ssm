@@ -34,7 +34,7 @@ struct context
 
         m_current_state = new _new_state;
         m_current_state->m_context = this;
-        return TINYSM_RESULT_TRANSIT_DONE;
+        return TINYSM_RESULT_TRANSIT_EVENT_DONE;
     }
 
     template <typename _event>

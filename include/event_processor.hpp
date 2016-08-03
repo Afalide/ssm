@@ -1,8 +1,8 @@
 
 #pragma once
 
+#include <iostream>
 #include <queue>
-//#include <thread>
 #include <condition_variable>
 #include <mutex>
 #include <event_result.hpp>
@@ -47,12 +47,24 @@ struct transit_event
 
 struct event_processor
 {
-    event_processor(){}
+    bool m_active;
+
+    event_processor() : m_active(true) {}
     virtual ~event_processor(){}
 
     virtual bool has_next() = 0;
     virtual void handle_next() = 0;
-    virtual void handle_all() = 0;
+
+    virtual void set_active(bool act)
+    {
+        m_active = act;
+    }
+
+    virtual bool is_active()
+    {
+        return m_active;
+    }
+
 };
 
 struct st_event_processor 
@@ -87,12 +99,6 @@ struct st_event_processor
         ev->call();
         delete ev;
     }
-
-    void handle_all() override
-    {
-        while(has_next())
-            handle_next();
-    }
 };
 
 struct mt_event_processor 
@@ -116,7 +122,7 @@ struct mt_event_processor
     virtual ~mt_event_processor() {}
 
     template <typename _context, typename _event_value>
-    void post(_context* context, _event_value evvalue)
+    void post_basic_event(_context* context, _event_value evvalue)
     {
         {   // lock scope
             std::lock_guard<std::mutex> lock(m_guard_mx);
@@ -128,7 +134,7 @@ struct mt_event_processor
     }
 
     template <typename _context, typename _new_state>
-    void post_transit(_context* context)
+    void post_transit_event(_context* context)
     {
         {   // lock scope
             std::lock_guard<std::mutex> lock(m_guard_mx);
@@ -147,6 +153,9 @@ struct mt_event_processor
 
     void handle_next() override
     {
+        if (! is_active())
+            return;
+
         i_event* ev = nullptr;
 
         {   // lock scope
@@ -159,36 +168,32 @@ struct mt_event_processor
             m_queue.pop();
         }
 
-        int result = ev->call();
+        /*int result =*/ ev->call();
         delete ev;
 
-        switch(result)
-        {
-            case TINYSM_RESULT_EVENT_DONE:
-                std::cout << "TINYSM_RESULT_EVENT_DONE" << std::endl;
-                break;
+        //switch(result)
+        //{
+        //    case TINYSM_RESULT_EVENT_DONE:
+        //        std::cout << "TINYSM_RESULT_EVENT_DONE" << std::endl;
+        //        break;
 
-            case TINYSM_RESULT_TRANSIT_DONE:
-                std::cout << "TINYSM_RESULT_TRANSIT_DONE" << std::endl;
-                break;
+        //    case TINYSM_RESULT_TRANSIT_DONE:
+        //        std::cout << "TINYSM_RESULT_TRANSIT_DONE" << std::endl;
+        //        break;
 
-            case TINYSM_RESULT_REQ_PROCESSOR_START:
-                std::cout << "TINYSM_RESULT_REQ_PROCESSOR_START" << std::endl;
-                break;
+        //    case TINYSM_RESULT_REQ_PROCESSOR_STOP:
+        //    {
+        //        { // lock scope
+        //            std::lock_guard<std::mutex> lock(m_guard_mx);
+        //            m_stopped = true;
+        //        }
+        //        std::cout << "TINYSM_RESULT_REQ_PROCESSOR_STOP" << std::endl;
+        //        break;
+        //    }
 
-            case TINYSM_RESULT_REQ_PROCESSOR_STOP:
-                std::cout << "TINYSM_RESULT_REQ_PROCESSOR_STOP" << std::endl;
-                break;
-
-            default:
-                std::cout << "unknown event result" << std::endl;
-        }
-    }
-
-    void handle_all() override
-    {
-        while(has_next())
-            handle_next();
+        //    default:
+        //        std::cout << "unknown event result" << std::endl;
+        //}
     }
 
     void wait_handle_next()
@@ -197,5 +202,17 @@ struct mt_event_processor
             m_cv.wait(m_unique_lk);
 
         handle_next();
+    }
+
+    virtual void set_active(bool act) override
+    {
+        std::lock_guard<std::mutex> lock(m_guard_mx);
+        event_processor::set_active(act);
+    }
+
+    virtual bool is_active() override
+    {
+        std::lock_guard<std::mutex> lock(m_guard_mx);
+        return event_processor::is_active();
     }
 };
