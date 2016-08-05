@@ -135,7 +135,7 @@ void basic_tests()
     assert(0 == events.count_remaining_events());
     i_state* current_state = ctx.m_current_state;
     assert(nullptr != current_state);
-    current_state->post_event<>(ev_simple());
+	current_state->post<ev_simple>(ev_simple());
     events.handle_next();
     assert(20 == current_state->m_value);
 }

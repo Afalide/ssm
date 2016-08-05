@@ -18,15 +18,15 @@ struct state
     }
 
     template <typename _new_state>
-    void post_transit()
+    void request_transit()
     {
-        m_context->post_transit<_new_state>();
+        m_context->post_transit_event_to_processor<_new_state>();
     }
 
     template <typename _event>
-    void post_event(_event ev)
+    void post(_event ev)
     {
-        m_context->post_event<_event>(ev);
+        m_context->post_basic_event_to_processor<_event>(ev);
     }
 
     int event_done()

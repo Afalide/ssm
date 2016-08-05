@@ -42,7 +42,7 @@ struct context
     }
 
     template <typename _new_state>
-    void post_transit()
+    void post_transit_event_to_processor()
     {
         assert(nullptr != m_event_processor);
         m_event_processor->post_transit_event<this_type, _new_state>(this);
@@ -56,7 +56,7 @@ struct context
     }
 
     template <typename _event>
-    void post_event(_event ev)
+    void post_basic_event_to_processor(_event ev)
     {
         assert(nullptr != m_event_processor);
         m_event_processor->post_basic_event<this_type, _event>(this, ev);
