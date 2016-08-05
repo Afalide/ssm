@@ -2,17 +2,21 @@
 #pragma once
 
 #include <cassert>
-#include <has_handle.hpp>
-#include <event_result.hpp>
+//#include <has_handle.hpp>
+//#include <event_result.hpp>
+#include <event_processor.hpp>
 
 template <typename _state>
 struct context
 {
     //static assert _state derives from state
 
-    _state* m_current_state;
+    typedef context<_state> this_type;
 
-    context() : m_current_state (nullptr) {}
+    _state* m_current_state;
+    event_processor* m_event_processor;
+
+    context() : m_current_state (nullptr), m_event_processor(nullptr) {}
 
     virtual ~context() 
     {
@@ -37,10 +41,24 @@ struct context
         return TINYSM_RESULT_TRANSIT_EVENT_DONE;
     }
 
+    template <typename _new_state>
+    void post_transit()
+    {
+        assert(nullptr != m_event_processor);
+        m_event_processor->post_transit_event<this_type, _new_state>(this);
+    }
+
     template <typename _event>
     int perform_current_state_handle (_event ev)
     {
         assert(nullptr != m_current_state);
         return m_current_state->handle(ev);
+    }
+
+    template <typename _event>
+    void post_event(_event ev)
+    {
+        assert(nullptr != m_event_processor);
+        m_event_processor->post_basic_event<this_type, _event>(this, ev);
     }
 };

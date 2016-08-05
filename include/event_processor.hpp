@@ -12,6 +12,7 @@ struct i_event
     i_event(){}
     virtual ~i_event(){}
     virtual int call() = 0;
+    //virtual i_event* convert_to_forwarded_event() = 0;
 };
 
 template <typename _context, typename _event_value>
@@ -19,15 +20,23 @@ struct basic_event
     : public i_event
 {
     _context* m_ctx;
-    _event_value m_ev;
+    _event_value m_evval;
 
-    basic_event(_context* ctx, _event_value ev) : m_ctx(ctx), m_ev(ev) {}
+    basic_event(_context* ctx, _event_value val) : m_ctx(ctx), m_evval(val) {}
     virtual ~basic_event(){}
 
     virtual int call() override
     {
-        return m_ctx->perform_current_state_handle(m_ev);
+        return m_ctx->perform_current_state_handle(m_evval);
     }
+
+    //virtual i_event* convert_to_substate_event() override
+    //{
+    //    if(is_context<>)
+    //        return new basic_event<>(m_ctx->m_current_state, m_evval);
+
+    //    return nullptr;
+    //}
 };
 
 template <typename _context, typename _new_state>
@@ -54,6 +63,8 @@ struct event_processor
 
     virtual bool has_next() = 0;
     virtual void handle_next() = 0;
+    virtual void append_event(i_event*) = 0;
+    virtual unsigned int count_remaining_events() = 0;
 
     virtual void set_active(bool act)
     {
@@ -65,9 +76,22 @@ struct event_processor
         return m_active;
     }
 
+    template <typename _context, typename _event_value>
+    void post_basic_event(_context* context, _event_value evvalue)
+    {
+        i_event* ev = new basic_event<_context,_event_value>(context, evvalue);
+        append_event(ev);
+    }
+
+    template <typename _context, typename _new_state>
+    void post_transit_event(_context* context)
+    {
+        i_event* ev = new transit_event<_context,_new_state>(context);
+        append_event(ev);
+    }
 };
 
-struct st_event_processor 
+/*struct st_event_processor 
     : public event_processor
 {
     std::queue<i_event*> m_queue;
@@ -99,7 +123,7 @@ struct st_event_processor
         ev->call();
         delete ev;
     }
-};
+};*/
 
 struct mt_event_processor 
     : public event_processor
@@ -121,24 +145,10 @@ struct mt_event_processor
 
     virtual ~mt_event_processor() {}
 
-    template <typename _context, typename _event_value>
-    void post_basic_event(_context* context, _event_value evvalue)
+    virtual void append_event (i_event* ev) override
     {
         {   // lock scope
             std::lock_guard<std::mutex> lock(m_guard_mx);
-            i_event* ev = new basic_event<_context,_event_value>(context, evvalue);
-            m_queue.push(ev);
-        }
-
-        m_cv.notify_one();
-    }
-
-    template <typename _context, typename _new_state>
-    void post_transit_event(_context* context)
-    {
-        {   // lock scope
-            std::lock_guard<std::mutex> lock(m_guard_mx);
-            i_event* ev = new transit_event<_context,_new_state>(context);
             m_queue.push(ev);
         }
 
@@ -149,6 +159,17 @@ struct mt_event_processor
     {
         std::lock_guard<std::mutex> lock(m_guard_mx);
         return m_queue.size() > 0;
+    }
+
+    virtual unsigned int count_remaining_events() override
+    {
+        unsigned int ret = 0;
+        {   // lock scope
+            std::lock_guard<std::mutex> lock(m_guard_mx);
+            ret = m_queue.size();
+        }
+
+        return ret;
     }
 
     void handle_next() override
@@ -168,7 +189,14 @@ struct mt_event_processor
             m_queue.pop();
         }
 
-        /*int result =*/ ev->call();
+        //int result = ev->call();
+        //if (TINYSM_RESULT_FORWARD_EVENT == result)
+        //{
+        //    i_event* forwarded_ev = ev->convert_to_forwarded_event();
+        //    post_i_event(forwarded_ev);
+        //}
+
+        ev->call();
         delete ev;
 
         //switch(result)
