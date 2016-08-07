@@ -4,6 +4,7 @@
 #include <context.hpp>
 #include <state.hpp>
 #include <event_processor.hpp>
+#include <tests/tests.hpp>
 
 struct ev_simple{};
 struct ev_request_transit{};
@@ -88,7 +89,7 @@ void basic_tests()
 {
     ctx.m_event_processor = &events;
 
-    assert(0 == events.count_remaining_events());
+    assert(0 == events.count());
     assert(events.is_active());
     assert(nullptr == ctx.m_current_state);
 
@@ -98,24 +99,23 @@ void basic_tests()
     assert(1 == ctx.m_current_state->get_id());
 
     events.post_basic_event(&ctx, ev_simple());
-    assert(1 == events.count_remaining_events());
+    assert(1 == events.count());
     events.handle_next();
-    assert(0 == events.count_remaining_events());
+    assert(0 == events.count());
     assert(10 == ctx.m_current_state->m_value);
 
     events.post_basic_event(&ctx, ev_request_transit());
-    assert(1 == events.count_remaining_events());
+    assert(1 == events.count());
     events.handle_next();
-    assert(1 == events.count_remaining_events());
+    assert(1 == events.count());
     events.handle_next();
-    assert(0 == events.count_remaining_events());
+    assert(0 == events.count());
     assert(2 == ctx.m_current_state->get_id());
 
     events.post_basic_event(&ctx, ev_request_processor_stop());
     events.handle_next();
-    assert(0 == events.count_remaining_events());
+    assert(0 == events.count());
     assert(!events.is_active());
-    
     assert(0 == ctx.m_current_state->m_value);
     events.post_basic_event(&ctx, ev_simple());
     events.post_basic_event(&ctx, ev_simple());
@@ -123,7 +123,7 @@ void basic_tests()
     events.handle_next();
     events.handle_next();
     events.handle_next();
-    assert(3 == events.count_remaining_events());
+    assert(3 == events.count());
     assert(0 == ctx.m_current_state->m_value);
 
     events.set_active(true);
@@ -132,7 +132,7 @@ void basic_tests()
     events.handle_next();
     assert(15 == ctx.m_current_state->m_value);
 
-    assert(0 == events.count_remaining_events());
+    assert(0 == events.count());
     i_state* current_state = ctx.m_current_state;
     assert(nullptr != current_state);
 	current_state->post<ev_simple>(ev_simple());

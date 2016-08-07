@@ -12,7 +12,6 @@ struct i_event
     i_event(){}
     virtual ~i_event(){}
     virtual int call() = 0;
-    //virtual i_event* convert_to_forwarded_event() = 0;
 };
 
 template <typename _context, typename _event_value>
@@ -29,14 +28,6 @@ struct basic_event
     {
         return m_ctx->perform_current_state_handle(m_evval);
     }
-
-    //virtual i_event* convert_to_substate_event() override
-    //{
-    //    if(is_context<>)
-    //        return new basic_event<>(m_ctx->m_current_state, m_evval);
-
-    //    return nullptr;
-    //}
 };
 
 template <typename _context, typename _new_state>
@@ -56,39 +47,146 @@ struct transit_event
 
 struct event_processor
 {
-    bool m_active;
+    event_processor() 
+	//	: m_active(true) 
+	{ }
 
-    event_processor() : m_active(true) {}
-    virtual ~event_processor(){}
+	virtual ~event_processor() { }
 
     virtual bool has_next() = 0;
     virtual void handle_next() = 0;
-    virtual void append_event(i_event*) = 0;
-    virtual unsigned int count_remaining_events() = 0;
+    virtual void append(i_event*) = 0;
+    virtual unsigned int count() = 0;
+	//virtual i_event* get_next() = 0;
 
-    virtual void set_active(bool act)
-    {
-        m_active = act;
-    }
-
-    virtual bool is_active()
-    {
-        return m_active;
-    }
+	virtual void set_active(bool) = 0;
+	virtual bool is_active() = 0;
 
     template <typename _context, typename _event_value>
     void post_basic_event(_context* context, _event_value evvalue)
     {
         i_event* ev = new basic_event<_context,_event_value>(context, evvalue);
-        append_event(ev);
+        append(ev);
     }
 
     template <typename _context, typename _new_state>
     void post_transit_event(_context* context)
     {
         i_event* ev = new transit_event<_context,_new_state>(context);
-        append_event(ev);
+        append(ev);
     }
+};
+
+struct mt_event_processor
+	: public event_processor
+{
+	std::mutex m_mutex;
+	std::queue<i_event*> m_queue;
+	std::condition_variable m_cv;
+	bool m_active;
+
+	mt_event_processor()
+		: m_mutex()
+		, m_queue()
+		, m_cv()
+		, m_active(true)
+	{ }
+
+	virtual ~mt_event_processor()
+	{ }
+
+	virtual bool st_is_active()
+	{
+		return m_active;
+	}
+
+	virtual bool is_active() override
+	{
+		{ // scope lock
+			std::lock_guard<std::mutex> lock(m_mutex);
+			return st_is_active();
+		}
+	}
+
+	virtual void st_set_active(bool b)
+	{
+		m_active = b;
+	}
+
+	virtual void set_active(bool b) override
+	{
+		{ // scope lock
+			std::lock_guard<std::mutex> lock(m_mutex);
+			st_set_active(b);
+		}
+	}
+
+	virtual void append(i_event* ev) override
+	{
+		{ // scope lock
+			std::lock_guard<std::mutex> lock(m_mutex);
+			m_queue.push(ev);
+		}
+	}
+
+	virtual unsigned int count() override
+	{
+		{ // scope lock
+			std::lock_guard<std::mutex> lock(m_mutex);
+			return m_queue.size();
+		}
+	}
+
+	virtual bool st_has_next()
+	{
+		return m_queue.size() > 0;
+	}
+
+	virtual bool has_next() override
+	{
+		{ // scope lock
+			std::lock_guard<std::mutex> lock(m_mutex);
+			return st_has_next();
+		}
+	}
+
+	virtual void handle_next() override
+	{
+		// securely get an event
+
+		i_event* ev = nullptr;
+
+		{ // scope lock
+			std::lock_guard<std::mutex> lock (m_mutex);
+
+			if(! st_is_active())
+				return;
+
+			if(! st_has_next())
+				return;
+
+			ev = m_queue.front();
+			m_queue.pop();
+		}
+
+		// handle the event after lock release
+
+		ev->call();
+		delete ev;
+	}
+
+	virtual void wait_handle_next()
+	{
+		std::unique_lock<std::mutex> lock(m_mutex, std::defer_lock);
+
+		while(! has_next())
+		{
+			lock.lock();
+			m_cv.wait(lock);
+		}
+
+		handle_next();
+	}
 };
 
 /*struct st_event_processor 
@@ -125,20 +223,21 @@ struct event_processor
     }
 };*/
 
+/*
 struct mt_event_processor 
     : public event_processor
 {
     std::queue<i_event*>            m_queue;
     std::mutex                      m_unique_mx;
     std::mutex                      m_guard_mx;
-    std::unique_lock<std::mutex>    m_unique_lk;
+    //std::unique_lock<std::mutex>    m_unique_lk;
     std::condition_variable         m_cv;
 
     mt_event_processor() 
         : m_queue()
         , m_unique_mx()
         , m_guard_mx()
-        , m_unique_lk(m_unique_mx)
+        //, m_unique_lk(m_unique_mx)
         , m_cv() 
     {
     }
@@ -226,8 +325,10 @@ struct mt_event_processor
 
     void wait_handle_next()
     {
-        while(! has_next())
-            m_cv.wait(m_unique_lk);
+		std::unique_lock<std::mutex> lock (m_guard_mx, std::defer_lock);
+        
+		while(! has_next())
+			m_cv.wait(lock);
 
         handle_next();
     }
@@ -244,3 +345,7 @@ struct mt_event_processor
         return event_processor::is_active();
     }
 };
+
+*/
+
+
