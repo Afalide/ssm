@@ -9,6 +9,11 @@
 
 std::string GetThreadIdStr();
 
+// TODO: hide ("encapsulate") the ProtectedResource logic
+// (mostly mutexes and locks) inside a non-template base class.
+// This is preferable to avoid the user pulling in all the
+// mutex and thread-related headers.
+
 template <typename TResource>
 class ProtectedResource
 {
@@ -66,7 +71,7 @@ public:
 
         if(nullptr == mCurrentLock)
         {
-            std::cout << GetThreadIdStr() << "warning, accessing released resource" << std::endl;
+            std::cout << GetThreadIdStr() << "error, accessing released resource" << std::endl;
             // Maybe throw something
         }
 
@@ -115,8 +120,6 @@ public:
         #endif
 
         ulock* lock = new ulock(mMutex); // May block
-
-        // Lock obtained here, no one else is locking, we are free to proceed
 
         if(wait)
             mCv.wait(*lock); // No loop, we are sensible to spurious wakes, but that's OK.
