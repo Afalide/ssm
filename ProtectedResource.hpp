@@ -14,6 +14,17 @@ std::string GetThreadIdStr();
 // This is preferable to avoid the user pulling in all the
 // mutex and thread-related headers.
 
+// TODO: add a lock-guard-style accessor for the resource, to avoid
+// repeated Lock + Release (or Wait + Release) invocations (this
+// might lead to errors due to missed Release calls)
+// ie:
+//     MyClass c;
+//     ProtectedResource<MyClass> prot(c);
+//     prot.GetWithLockGuard().DoStuff();
+//     // no need to call Release here
+
+//TODO: do same thing with a Wait condition
+
 template <typename TResource>
 class ProtectedResource
 {
