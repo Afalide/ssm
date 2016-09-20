@@ -36,6 +36,15 @@ public:
 	                               // this one.
 };
 
+class DefaultPredicate : public Predicate
+{
+    virtual bool operator()() override
+    {
+        return true; // The default predicate (used as default parameters for some calls)
+                     // which always returns true.
+    }
+};
+
 template <typename TResource>
 class ProtectedResource
 {
@@ -46,7 +55,7 @@ class ProtectedResource
     std::mutex               mMutex;
     std::condition_variable  mCv;
     ulock*                   mCurrentLock;
-	Predicate*               mPredicate;
+	//Predicate*               mPredicate;
 
 #if defined(TINYSM_STRONG_CHECKS)
     std::thread::id mLockerId;    
@@ -57,12 +66,12 @@ class ProtectedResource
 
 public:
 
-    ProtectedResource(TResource res, Predicate* predicate) 
+    ProtectedResource(TResource res /*, Predicate* predicate*/) 
         : mRes(res)
         , mMutex()
         , mCv()
         , mCurrentLock(nullptr)
-		, mPredicate(predicate)
+		//, mPredicate(predicate)
 #if defined(TINYSM_STRONG_CHECKS)
         , mLockerId()
 #endif
@@ -133,7 +142,7 @@ public:
         delete lock_to_delete; // Unlocks
     }
 
-    void LockImpl(bool wait, bool release_on_wake)
+    void LockImpl(bool wait, bool release_on_wake, Predicate& wait_predicate)
     {
         #if defined(TINYSM_STRONG_CHECKS)
         if(mLockerId == std::this_thread::get_id())
@@ -152,8 +161,27 @@ public:
 
 		if(wait)
 		{
-			while(! mPredicate())
-				mCv.wait(*lock);
+            //if(nullptr == wait_predicate)
+            //{
+            //    std::cout << GetThreadIdStr() << "error, null predicate given" << std::endl;
+            //    // Maybe throw something
+            //    return;
+            //}
+
+            //if (nullptr == wait_predicate)
+            //{
+            //    // No predicate given, try to sleep once.
+            //    // We are sensible to spurious wakes, but that's OK.
+            //    // It is up to the user to call the Wait or LockWait function
+            //    // within a loop and checking with it's own custom predicate.
+
+            //    mCv.wait(*lock); 
+            //}
+            //else
+            //{
+			    while(! wait_predicate())
+                mCv.wait(*lock); 
+            //}
 		}
 
 		if(wait && release_on_wake)
@@ -173,19 +201,21 @@ public:
     void Lock()
     {
 		// Get a lock, do not sleep
-        LockImpl(false, false);
+        DefaultPredicate wait_predicate;
+        //Predicate& wait_predicate = pred;
+        LockImpl(false, false, wait_predicate);
     }
 
-    void WaitLock()
+    void WaitLock(Predicate& wait_predicate)
     {
 		// Sleep until wake-up, and get a lock
-        LockImpl(true, false);
+        LockImpl(true, false, wait_predicate);
     }
 
-	void Wait()
+	void Wait(Predicate& wait_predicate)
 	{
 		// Sleep until wake-up, no lock obtained
-		LockImpl(true, true);
+		LockImpl(true, true, wait_predicate);
 	}
 
     void Notify()

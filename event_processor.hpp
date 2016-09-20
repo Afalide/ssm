@@ -53,15 +53,14 @@ class event_processor
 
 	class EventProcessorPredicate : public Predicate
 	{
-		
 	};
 
 public:
 
-    //event_processor()
-    //    : m_res(new t_event_queue)
-    //{
-    //}
+    event_processor()
+        : m_res(new t_event_queue)
+    {
+    }
 
     ~event_processor()
 	{

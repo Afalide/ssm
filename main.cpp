@@ -4,22 +4,29 @@
 #include "context.hpp"
 #include <Windows.h>
 #include "ProtectedResource.hpp"
-#include <ctime>
-#include <cstdlib>
 
 struct Data
 {
+private:
+
     int val;
-    Data() : val(0) 
-	{
-		srand(time(NULL));
+
+public:
+
+    Data() 
+        : val(0)
+    {
 	}
+
+    ~Data()
+    {
+    }
 
 	std::queue<int> list;
 
 	bool available()
 	{
-		return list.size > 0;
+		return list.size() > 0;
 	}
 
 	void add_event()
@@ -39,23 +46,25 @@ struct Data
 };
 
 class DataPredicate
-	: public Predicate
+    : public Predicate
 {
+    Data* mData;
+
 public:
 
-	Data* mData;
-
-	DataPredicate(Data* dat)
-		: mData(dat)
-	{ }
+    DataPredicate(Data* data)
+        : mData(data)
+    { }
 
 	virtual bool operator()() override
 	{
-		return mData->available();
+        return mData->available();
 	}
 };
 
- ProtectedResource<Data*>* pdata;
+Data*                      g_data;
+DataPredicate*             g_pred;
+ProtectedResource<Data*>*  g_protected_data;
 
 void thread_main()
 {
@@ -74,12 +83,12 @@ void thread_main()
     //    //std::cout << GetThreadIdStr() << "wait lock obtained" << std::endl;
     //    pdata->Release();
     //}
-
+    
 	while(true)
 	{
-		pdata->WaitLock();
-		pdata->Get()->process_event();
-		pdata->Release();
+        g_protected_data->WaitLock(*g_pred);
+		g_protected_data->Get()->process_event();
+		g_protected_data->Release();
 	}
 }
 
@@ -116,13 +125,9 @@ int main()
     //MyContext ctx;
     //ctx.perform_transit<StateIdle>();
 
-
-
-
-	Data* data = new Data;
-	DataPredicate* pred = new DataPredicate(data);
-    
-    pdata = new ProtectedResource<Data*>(data, pred);
+    g_data = new Data;
+    g_pred = new DataPredicate(g_data);
+    g_protected_data = new ProtectedResource<Data*>(g_data);
 
     std::thread threads[THREADS_COUNT];
 
@@ -139,7 +144,7 @@ int main()
         switch(c)
         {
         case 'n':
-            pdata->Notify();
+            g_protected_data->Notify();
             break;
 
         case 'q':
@@ -154,10 +159,10 @@ int main()
     for(int i=0; i<THREADS_COUNT; ++i)
         threads[i].join();
 
-    pdata->Lock();
-    delete pdata->Get();
-    pdata->Release();
-    delete pdata;
+    g_protected_data->Lock();
+    delete g_protected_data->Get();
+    g_protected_data->Release();
+    delete g_protected_data;
 
     return 0;
 }
