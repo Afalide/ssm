@@ -25,16 +25,28 @@ std::string GetThreadIdStr();
 
 //TODO: do same thing with a Wait condition
 
+class Predicate
+{
+public:
+	virtual ~Predicate() { }
+	virtual bool operator()() = 0; // The predicate implementation goes here.
+	                               // This function returns the predicate value: true or false.
+	                               // This function is executed with a locked mutex: be 
+	                               // careful not to call any Lock-like function inside
+	                               // this one.
+};
+
 template <typename TResource>
 class ProtectedResource
 {
     typedef std::lock_guard  <std::mutex> glock;
     typedef std::unique_lock <std::mutex> ulock;
 
-    TResource mRes;
-    std::mutex mMutex;
-    std::condition_variable mCv;
-    ulock* mCurrentLock;
+    TResource                mRes;
+    std::mutex               mMutex;
+    std::condition_variable  mCv;
+    ulock*                   mCurrentLock;
+	Predicate*               mPredicate;
 
 #if defined(TINYSM_STRONG_CHECKS)
     std::thread::id mLockerId;    
@@ -45,11 +57,12 @@ class ProtectedResource
 
 public:
 
-    ProtectedResource(TResource res) 
+    ProtectedResource(TResource res, Predicate* predicate) 
         : mRes(res)
         , mMutex()
         , mCv()
         , mCurrentLock(nullptr)
+		, mPredicate(predicate)
 #if defined(TINYSM_STRONG_CHECKS)
         , mLockerId()
 #endif
@@ -120,7 +133,7 @@ public:
         delete lock_to_delete; // Unlocks
     }
 
-    void LockImpl(bool wait)
+    void LockImpl(bool wait, bool release_on_wake)
     {
         #if defined(TINYSM_STRONG_CHECKS)
         if(mLockerId == std::this_thread::get_id())
@@ -132,10 +145,23 @@ public:
 
         ulock* lock = new ulock(mMutex); // May block
 
-        if(wait)
-            mCv.wait(*lock); // No loop, we are sensible to spurious wakes, but that's OK.
-                             // It is up to the user to put the Wait() function inside a
-                             // loop and check with it's own predicate.
+        //if(wait)
+        //    mCv.wait(*lock); // No loop, we are sensible to spurious wakes, but that's OK.
+        //                     // It is up to the user to put the Wait (or LockWait) function
+        //                     // inside a loop and check with it's own predicate.
+
+		if(wait)
+		{
+			while(! mPredicate())
+				mCv.wait(*lock);
+		}
+
+		if(wait && release_on_wake)
+		{
+			delete lock; // Release the lock after wake up, the resource is not locked
+			             // and therefore not owned by the user.
+			return;
+		}
 
         mCurrentLock = lock;
 
@@ -146,13 +172,21 @@ public:
 
     void Lock()
     {
-        LockImpl(false);
+		// Get a lock, do not sleep
+        LockImpl(false, false);
     }
 
-    void Wait()
+    void WaitLock()
     {
-        LockImpl(true);
+		// Sleep until wake-up, and get a lock
+        LockImpl(true, false);
     }
+
+	void Wait()
+	{
+		// Sleep until wake-up, no lock obtained
+		LockImpl(true, true);
+	}
 
     void Notify()
     {

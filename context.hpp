@@ -3,11 +3,12 @@
 
 //template <typename T> struct State;
 #include "state.hpp"
+#include "event_processor.hpp"
 
-template <typename t_event_interface>
+template <typename _event_interface>
 struct context
 {
-    typedef state<t_event_interface> t_state;
+    typedef state<_event_interface> t_state;
     t_state* m_current_state;
 
     context()
@@ -37,6 +38,4 @@ struct context
         m_current_state->m_context = this;
         //return TINYSM_RESULT_TRANSIT_EVENT_DONE;
     }
-
-    
 };

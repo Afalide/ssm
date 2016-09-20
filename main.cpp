@@ -1,44 +1,90 @@
 
 #include <iostream>
 //#include "State.hpp"
-#include "Context.hpp"
-
-
-/*
+#include "context.hpp"
+#include <Windows.h>
 #include "ProtectedResource.hpp"
+#include <ctime>
+#include <cstdlib>
 
 struct Data
 {
     int val;
-    Data() : val(0) {}
-    void increase_value()
+    Data() : val(0) 
+	{
+		srand(time(NULL));
+	}
+
+	std::queue<int> list;
+
+	bool available()
+	{
+		return list.size > 0;
+	}
+
+	void add_event()
+	{
+		int val = rand();
+		list.push(val);
+		std::cout << "pushed event val " << val << std::endl;
+	}
+
+    void process_event()
     {
-        val += 5;
-        std::cout << GetThreadIdStr() << "increased value to " << val << std::endl;
+		val = list.front();
+		Sleep(100);
+		std::cout << "processed event val " << val << std::endl;
+		list.pop();
     }
 };
 
- ProtectedResource<Data*> *pdata;
+class DataPredicate
+	: public Predicate
+{
+public:
+
+	Data* mData;
+
+	DataPredicate(Data* dat)
+		: mData(dat)
+	{ }
+
+	virtual bool operator()() override
+	{
+		return mData->available();
+	}
+};
+
+ ProtectedResource<Data*>* pdata;
 
 void thread_main()
 {
-    //pdata->Lock();
-    //pdata->Get()->increase_value();
-    //pdata->Release();
 
-    while(true)
-    {
-        //pdata->Get()->increase_value();
-        std::cout << GetThreadIdStr() << "waiting" << std::endl;
-        pdata->Wait();
-        pdata->Get()->increase_value();
-        //std::cout << GetThreadIdStr() << "wait lock obtained" << std::endl;
-        pdata->Release();
-    }
+
+    ////pdata->Lock();
+    ////pdata->Get()->increase_value();
+    ////pdata->Release();
+
+    //while(true)
+    //{
+    //    //pdata->Get()->increase_value();
+    //    std::cout << GetThreadIdStr() << "waiting" << std::endl;
+    //    pdata->WaitLock();
+    //    pdata->Get()->increase_value();
+    //    //std::cout << GetThreadIdStr() << "wait lock obtained" << std::endl;
+    //    pdata->Release();
+    //}
+
+	while(true)
+	{
+		pdata->WaitLock();
+		pdata->Get()->process_event();
+		pdata->Release();
+	}
 }
 
-#define THREADS_COUNT 10
-*/
+#define THREADS_COUNT 2
+
 
 struct Eva{};
 struct Evb{};
@@ -63,18 +109,20 @@ struct StateIdle : public MyEventInterface
 
 struct MyContext : public context<MyEventInterface>
 {
-    
 };
 
 int main()
 {
-    MyContext ctx;
-    ctx.perform_transit<StateIdle>();
+    //MyContext ctx;
+    //ctx.perform_transit<StateIdle>();
 
 
 
-    /*
-    pdata = new ProtectedResource<Data*>(new Data);
+
+	Data* data = new Data;
+	DataPredicate* pred = new DataPredicate(data);
+    
+    pdata = new ProtectedResource<Data*>(data, pred);
 
     std::thread threads[THREADS_COUNT];
 
@@ -110,9 +158,6 @@ int main()
     delete pdata->Get();
     pdata->Release();
     delete pdata;
-    */
-    
-    
 
     return 0;
 }
