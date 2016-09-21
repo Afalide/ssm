@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <iostream>
 #include <string>
+#include <type_traits>
 
 std::string GetThreadIdStr();
 
@@ -13,6 +14,9 @@ std::string GetThreadIdStr();
 // (mostly mutexes and locks) inside a non-template base class.
 // This is preferable to avoid the user pulling in all the
 // mutex and thread-related headers.
+
+// TODO: constraint the resource to be stored as a pointer
+// This is to avoid unwanted resource copies.
 
 // TODO: add a lock-guard-style accessor for the resource, to avoid
 // repeated Lock + Release (or Wait + Release) invocations (this
@@ -38,6 +42,8 @@ public:
 
 class DefaultPredicate : public Predicate
 {
+public:
+
     virtual bool operator()() override
     {
         return true; // The default predicate (used as default parameters for some calls)
@@ -154,34 +160,10 @@ public:
 
         ulock* lock = new ulock(mMutex); // May block
 
-        //if(wait)
-        //    mCv.wait(*lock); // No loop, we are sensible to spurious wakes, but that's OK.
-        //                     // It is up to the user to put the Wait (or LockWait) function
-        //                     // inside a loop and check with it's own predicate.
-
 		if(wait)
 		{
-            //if(nullptr == wait_predicate)
-            //{
-            //    std::cout << GetThreadIdStr() << "error, null predicate given" << std::endl;
-            //    // Maybe throw something
-            //    return;
-            //}
-
-            //if (nullptr == wait_predicate)
-            //{
-            //    // No predicate given, try to sleep once.
-            //    // We are sensible to spurious wakes, but that's OK.
-            //    // It is up to the user to call the Wait or LockWait function
-            //    // within a loop and checking with it's own custom predicate.
-
-            //    mCv.wait(*lock); 
-            //}
-            //else
-            //{
-			    while(! wait_predicate())
+			while(! wait_predicate())
                 mCv.wait(*lock); 
-            //}
 		}
 
 		if(wait && release_on_wake)
@@ -201,8 +183,10 @@ public:
     void Lock()
     {
 		// Get a lock, do not sleep
-        DefaultPredicate wait_predicate;
-        //Predicate& wait_predicate = pred;
+        DefaultPredicate wait_predicate;  // No predicate given, default one will sleep once.
+                                          // We are sensible to spurious wakes, but that's OK.
+                                          // It is up to the user to call the Wait or LockWait function
+                                          // within a loop and checking with it's own custom predicate.
         LockImpl(false, false, wait_predicate);
     }
 
@@ -223,5 +207,29 @@ public:
         glock lock(mMutex);
         std::cout << "notifying" << std::endl;
         mCv.notify_all();
+    }
+
+    // A predicate which already has an access to the protected 
+    // resource value. This is because most of custom predicates need
+    // to access the resource in order to work (ex: a predicate which 
+    // determines if a vector 
+    
+    //template <typename TResource>
+    class AccessPredicate
+        : public Predicate
+    {
+    public:
+        TResource mResource;
+        virtual ~AccessPredicate() { }
+        virtual bool operator()() = 0;
+    };
+
+    template <typename TAccessPredicate>
+    TAccessPredicate CreatePredicate()
+    {
+        static_assert(std::is_base_of<AccessPredicate,TAccessPredicate>::value, "Your predicate must derive from ProtectedResource::AccessPredicate");
+        TAccessPredicate ap;
+        ap.mResource = mRes;
+        return ap;
     }
 };

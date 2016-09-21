@@ -46,24 +46,25 @@ public:
 };
 
 class DataPredicate
-    : public Predicate
+    : public ProtectedResource<Data*>::AccessPredicate
 {
-    Data* mData;
+    //Data* mData;
 
 public:
 
-    DataPredicate(Data* data)
-        : mData(data)
+    DataPredicate(/*Data* data*/)
+        //: mData(data)
     { }
 
 	virtual bool operator()() override
 	{
-        return mData->available();
+        std::cout << "testing predicate" << std::endl;
+        return mResource->available();
 	}
 };
 
 Data*                      g_data;
-DataPredicate*             g_pred;
+//DataPredicate*             g_pred;
 ProtectedResource<Data*>*  g_protected_data;
 
 void thread_main()
@@ -84,15 +85,17 @@ void thread_main()
     //    pdata->Release();
     //}
     
+    DataPredicate pred = g_protected_data->CreatePredicate<DataPredicate>();
+
 	while(true)
 	{
-        g_protected_data->WaitLock(*g_pred);
+        g_protected_data->WaitLock(pred);
 		g_protected_data->Get()->process_event();
 		g_protected_data->Release();
 	}
 }
 
-#define THREADS_COUNT 2
+#define THREADS_COUNT 3
 
 
 struct Eva{};
@@ -126,7 +129,7 @@ int main()
     //ctx.perform_transit<StateIdle>();
 
     g_data = new Data;
-    g_pred = new DataPredicate(g_data);
+    //g_pred = new DataPredicate(g_data);
     g_protected_data = new ProtectedResource<Data*>(g_data);
 
     std::thread threads[THREADS_COUNT];
@@ -163,6 +166,7 @@ int main()
     delete g_protected_data->Get();
     g_protected_data->Release();
     delete g_protected_data;
+    //delete g_pred;
 
     return 0;
 }
