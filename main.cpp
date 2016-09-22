@@ -48,14 +48,7 @@ public:
 class DataPredicate
     : public ProtectedResource<Data*>::AccessPredicate
 {
-    //Data* mData;
-
 public:
-
-    DataPredicate(/*Data* data*/)
-        //: mData(data)
-    { }
-
 	virtual bool operator()() override
 	{
         std::cout << "testing predicate" << std::endl;
@@ -64,7 +57,6 @@ public:
 };
 
 Data*                      g_data;
-//DataPredicate*             g_pred;
 ProtectedResource<Data*>*  g_protected_data;
 
 void thread_main()
@@ -85,7 +77,7 @@ void thread_main()
     //    pdata->Release();
     //}
     
-    DataPredicate pred = g_protected_data->CreatePredicate<DataPredicate>();
+    DataPredicate pred = g_protected_data->CreateAccessiblePredicate<DataPredicate>();
 
 	while(true)
 	{

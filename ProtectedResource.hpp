@@ -47,7 +47,7 @@ public:
     virtual bool operator()() override
     {
         return true; // The default predicate (used as default parameters for some calls)
-                     // which always returns true.
+                     // which is always true.
     }
 };
 
@@ -61,7 +61,6 @@ class ProtectedResource
     std::mutex               mMutex;
     std::condition_variable  mCv;
     ulock*                   mCurrentLock;
-	//Predicate*               mPredicate;
 
 #if defined(TINYSM_STRONG_CHECKS)
     std::thread::id mLockerId;    
@@ -72,12 +71,11 @@ class ProtectedResource
 
 public:
 
-    ProtectedResource(TResource res /*, Predicate* predicate*/) 
+    ProtectedResource(TResource res) 
         : mRes(res)
         , mMutex()
         , mCv()
         , mCurrentLock(nullptr)
-		//, mPredicate(predicate)
 #if defined(TINYSM_STRONG_CHECKS)
         , mLockerId()
 #endif
@@ -212,24 +210,34 @@ public:
     // A predicate which already has an access to the protected 
     // resource value. This is because most of custom predicates need
     // to access the resource in order to work (ex: a predicate which 
-    // determines if a vector 
+    // determines if a vector is available would need to look
+    // at the vector's size)
     
-    //template <typename TResource>
     class AccessPredicate
         : public Predicate
     {
-    public:
+        friend class ProtectedResource<TResource>;
+    protected:
         TResource mResource;
+    public:
+        AccessPredicate() : mResource(nullptr) { }
+        AccessPredicate(const AccessPredicate& other) : mResource(other.mResource) { }
+        AccessPredicate& operator= (const AccessPredicate& other) { mResource = other.mResource; }
         virtual ~AccessPredicate() { }
         virtual bool operator()() = 0;
+        
     };
 
-    template <typename TAccessPredicate>
-    TAccessPredicate CreatePredicate()
+    //template <typename TAccessPredicate>
+    template <AccessPredicate TAccessPredicate>
+    TAccessPredicate CreateAccessiblePredicate()
     {
-        static_assert(std::is_base_of<AccessPredicate,TAccessPredicate>::value, "Your predicate must derive from ProtectedResource::AccessPredicate");
+        //static_assert ( std::is_base_of<AccessPredicate, TAccessPredicate>::value
+        //              , "Your predicate must derive from ProtectedResource::AccessPredicate");
         TAccessPredicate ap;
         ap.mResource = mRes;
         return ap;
     }
+
+    // A structure which forwards the behavior of the lock 
 };
