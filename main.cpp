@@ -158,7 +158,7 @@ int main()
     delete g_protected_data->Get();
     g_protected_data->Release();
     delete g_protected_data;
-    //delete g_pred;
+    //delete g_pred
 
     return 0;
 }

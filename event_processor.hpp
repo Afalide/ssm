@@ -49,31 +49,37 @@ class event_processor
     typedef std::queue<i_event*> t_event_queue;
     typedef ProtectedResource<t_event_queue*> t_protected_event_vector;
 
-    t_protected_event_vector m_res;
+    //t_event_queue* m_queue;
+    t_protected_event_vector m_prot_queue;
 
-	class EventProcessorPredicate : public Predicate
-	{
-	};
+    class event_queue_predicate
+        : public t_protected_event_vector::AccessPredicate
+    {
+        virtual bool operator()()
+        {
+            return mResource->size() > 0;
+        }
+    };
 
 public:
 
     event_processor()
-        : m_res(new t_event_queue)
+        //: m_queue(new t_event_queue)
+        : m_prot_queue(new t_event_queue)
     {
+
     }
 
     ~event_processor()
 	{
-		m_res.Lock();
-		delete m_res.Get();
-		m_res.Release();
+        
 	}
 
     void append(i_event* ev)
     {
-        m_res.Lock();
-        m_res.Get()->push(ev);
-        m_res.Release();
+        m_prot_queue.Lock();
+        m_prot_queue.Get()->push(ev);
+        m_prot_queue.Release();
     }
 
     template <typename _context, typename _event>
@@ -90,31 +96,56 @@ public:
         append(ev);
     }
 
-	bool has_next()
-	{
-		m_res.Lock();
-		return st_has_next();
-		m_res.Release();
-	}
+    void wait_process_next()
+    {
+        Predicate& pred = m_prot_queue.CreateAccessiblePredicate<event_queue_predicate>();
+        
+        // Wait until an event is available and lock the queue
 
-	void process_next()
-	{
-		m_res.Lock();
-		
-		if(! st_has_next())
-			return;
+        m_prot_queue.WaitLock(pred);
 
-		t_event_queue* vec = m_res.Get();
+        // Get an event
 
-		i_event* ev = vec->front();
-		vec->pop();
+        t_event_queue* queue  = m_prot_queue.Get();
+        i_event* ev           = queue->front();
+        
+        // Process the event
 
-		m_res.Release();
-	
-		// queue unlocked, process the event
+        queue->pop();
+        ev->call();
 
-		ev->call();
-	}
+        delete ev;
+
+        // Unlock the queue
+
+        m_prot_queue.Release();
+    }
+
+	//bool has_next()
+	//{
+	//	m_res.Lock();
+	//	return st_has_next();
+	//	m_res.Release();
+	//}
+
+	//void process_next()
+	//{
+	//	m_res.Lock();
+	//	
+	//	if(! st_has_next())
+	//		return;
+
+	//	t_event_queue* vec = m_res.Get();
+
+	//	i_event* ev = vec->front();
+	//	vec->pop();
+
+	//	m_res.Release();
+	//
+	//	// queue unlocked, process the event
+
+	//	ev->call();
+	//}
 
 	//void block_and_process_all()
 	//{
@@ -134,8 +165,8 @@ public:
 
 private:
 
-	bool st_has_next()
-	{
-		return m_res.Get()->size() > 0;
-	}
+	//bool st_has_next()
+	//{
+	//	return m_res.Get()->size() > 0;
+	//}
 };

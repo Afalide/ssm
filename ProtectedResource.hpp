@@ -228,12 +228,11 @@ public:
         
     };
 
-    //template <typename TAccessPredicate>
-    template <AccessPredicate TAccessPredicate>
+    template <typename TAccessPredicate>
     TAccessPredicate CreateAccessiblePredicate()
     {
-        //static_assert ( std::is_base_of<AccessPredicate, TAccessPredicate>::value
-        //              , "Your predicate must derive from ProtectedResource::AccessPredicate");
+        static_assert ( std::is_base_of<AccessPredicate, TAccessPredicate>::value
+                      , "Your predicate must derive from ProtectedResource::AccessPredicate");
         TAccessPredicate ap;
         ap.mResource = mRes;
         return ap;
