@@ -3,7 +3,7 @@
 
 #include <sstream>
 
-std::string GetThreadIdStr()
+std::string get_thread_id_str()
 {
     std::stringstream ss;
     ss << std::this_thread::get_id();

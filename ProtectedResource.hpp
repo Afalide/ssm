@@ -8,9 +8,9 @@
 #include <string>
 #include <type_traits>
 
-std::string GetThreadIdStr();
+std::string get_thread_id_str();
 
-// TODO: hide ("encapsulate") the ProtectedResource logic
+// TODO: hide ("encapsulate") the protected_resource logic
 // (mostly mutexes and locks) inside a non-template base class.
 // This is preferable to avoid the user pulling in all the
 // mutex and thread-related headers.
@@ -19,18 +19,18 @@ std::string GetThreadIdStr();
 
 // TODO: refactor this file with snake case
 
-class Predicate
+class predicate
 {
 public:
-	virtual ~Predicate() { }
+	virtual ~predicate() { }
 	virtual bool operator()() = 0; // The predicate implementation goes here.
 	                               // This function returns the predicate value: true or false.
 	                               // This function is executed with a locked mutex: be 
-	                               // careful not to call any Lock-like function inside
+	                               // careful not to call any lock-like function inside
 	                               // this one.
 };
 
-class DefaultPredicate : public Predicate
+class default_predicate : public predicate
 {
 public:
 
@@ -41,117 +41,116 @@ public:
     }
 };
 
-template <typename TResource>
-class ProtectedResource
+template <typename t_resource>
+class protected_resource
 {
     typedef std::lock_guard  <std::mutex> glock;
     typedef std::unique_lock <std::mutex> ulock;
 
-    TResource                mRes;
-    std::mutex               mMutex;
-    std::condition_variable  mCv;
-    ulock*                   mCurrentLock;
+    t_resource                m_res;
+    std::mutex               m_mutex;
+    std::condition_variable  m_cv;
+    ulock*                   m_current_lock;
 
 #if defined(TINYSM_STRONG_CHECKS)
-    std::thread::id mLockerId;    
+    std::thread::id m_locker_id;    
 #endif
 
-    ProtectedResource(const ProtectedResource& other);
-    ProtectedResource& operator= (const ProtectedResource&);
+    protected_resource(const protected_resource& other);
+    protected_resource& operator= (const protected_resource&);
 
 public:
 
-    ProtectedResource(TResource res) 
-        : mRes(res)
-        , mMutex()
-        , mCv()
-        , mCurrentLock(nullptr)
+    protected_resource(t_resource res) 
+        : m_res(res)
+        , m_mutex()
+        , m_cv()
+        , m_current_lock(nullptr)
 #if defined(TINYSM_STRONG_CHECKS)
-        , mLockerId()
+        , m_locker_id()
 #endif
     {
     }
 
-    virtual ~ProtectedResource()
+    virtual ~protected_resource()
     {
-        if(nullptr != mCurrentLock)
+        if(nullptr != m_current_lock)
         {
-            std::cout << GetThreadIdStr() << "error, deleting a ProtectedResource while the resource is still being locked" << std::endl;
+            std::cout << get_thread_id_str() << "error, deleting a protected_resource while the resource is still being locked" << std::endl;
             
             // Try to unlock anyways; the following might fail / crash / throw
 
-            mCurrentLock->release();
-            delete mCurrentLock;
-            mMutex.unlock();
+            m_current_lock->release();
+            delete m_current_lock;
+            m_mutex.unlock();
         }
     }
 
-    TResource Get()
+    t_resource get()
     {
-#if defined(TINYSM_STRONG_CHECKS)
-        if(std::this_thread::get_id() != mLockerId)
-        {
-            std::cout << GetThreadIdStr() << "error, the thread attempting to access the resource is not the one which locked it" << std::endl;
-            // Maybe throw something
-        }
-#endif
-
-        if(nullptr == mCurrentLock)
-        {
-            std::cout << GetThreadIdStr() << "error, accessing released resource" << std::endl;
-            // Maybe throw something
-        }
-
-        std::cout << GetThreadIdStr() << "obtaining resource" << std::endl;
-        return mRes;
-    }
-
-    void Release()
-    {
-
         #if defined(TINYSM_STRONG_CHECKS)
-        if(std::this_thread::get_id() != mLockerId)
+        if(std::this_thread::get_id() != m_locker_id)
         {
-            std::cout << GetThreadIdStr() << "error, the thread attempting to release the resource is not the one which locked it" << std::endl;
+            std::cout << get_thread_id_str() << "error, the thread attempting to access the resource is not the one which locked it" << std::endl;
+            // Maybe throw something
+        }
+        #endif
+
+        if(nullptr == m_current_lock)
+        {
+            std::cout << get_thread_id_str() << "error, accessing released resource" << std::endl;
+            // Maybe throw something
+        }
+
+        std::cout << get_thread_id_str() << "obtaining resource" << std::endl;
+        return m_res;
+    }
+
+    void release()
+    {
+        #if defined(TINYSM_STRONG_CHECKS)
+        if(std::this_thread::get_id() != m_locker_id)
+        {
+            std::cout << get_thread_id_str() << "error, the thread attempting to release the resource is not the one which locked it" << std::endl;
             // Maybe throw something
             return;
         }
         #endif
 
-        if(nullptr == mCurrentLock)
+        if(nullptr == m_current_lock)
         {
-            std::cout << GetThreadIdStr() << "warning, resource already released" << std::endl;
+            std::cout << get_thread_id_str() << "warning, resource already released" << std::endl;
             return;
         }
 
         // Make sure the member is set to null BEFORE releasing the lock
 
-        ulock* lock_to_delete = mCurrentLock;
-        mCurrentLock = nullptr;
+        ulock* lock_to_delete = m_current_lock;
+        m_current_lock = nullptr;
 
         #if defined(TINYSM_STRONG_CHECKS)
-        mLockerId = std::thread::id();
+        m_locker_id = std::thread::id();
         #endif
 
         delete lock_to_delete; // Unlocks
     }
 
-    void LockImpl(bool wait, bool release_on_wake, Predicate& wait_predicate)
+    void lock_impl(bool wait, bool release_on_wake, predicate& wait_predicate)
     {
         #if defined(TINYSM_STRONG_CHECKS)
-        if(mLockerId == std::this_thread::get_id())
+        if(m_locker_id == std::this_thread::get_id())
         {
-            std::cout << GetThreadIdStr() << "error, the thread is attempting to lock the same resource twice" << std::endl;
+            std::cout << get_thread_id_str() << "error, the thread is attempting to lock the same resource twice" << std::endl;
             // Maybe throw something
         }
         #endif
 
-        ulock* lock = new ulock(mMutex); // May block
+        ulock* lock = new ulock(m_mutex); // May block
 
 		if(wait)
 		{
 			while(! wait_predicate())
-                mCv.wait(*lock); 
+                m_cv.wait(*lock); 
 		}
 
 		if(wait && release_on_wake)
@@ -161,67 +160,69 @@ public:
 			return;
 		}
 
-        mCurrentLock = lock;
+        m_current_lock = lock;
 
         #if defined(TINYSM_STRONG_CHECKS)
-        mLockerId = std::this_thread::get_id();
+        m_locker_id = std::this_thread::get_id();
         #endif
     }
 
-    void Lock()
+    void lock()
     {
-		// Get a lock, do not sleep
-        DefaultPredicate wait_predicate;
-        LockImpl(false, false, wait_predicate);
+		// get a lock, do not sleep
+        default_predicate wait_predicate; // Default predicate, always true. Unused anyway since
+                                          // there is no wait.
+        lock_impl(false, false, wait_predicate);
     }
 
-    void WaitLock(Predicate& wait_predicate)
+    void wait_lock(predicate& wait_predicate)
     {
 		// Sleep until wake-up, and get a lock
-        LockImpl(true, false, wait_predicate);
+        lock_impl(true, false, wait_predicate);
     }
 
-	void Wait(Predicate& wait_predicate)
+	void wait(predicate& wait_predicate)
 	{
 		// Sleep until wake-up, no lock obtained
-		LockImpl(true, true, wait_predicate);
+		lock_impl(true, true, wait_predicate);
 	}
 
-    void Notify()
+    void notify()
     {
-        glock lock(mMutex);
+        glock lock(m_mutex);
         std::cout << "notifying" << std::endl;
-        mCv.notify_all();
+        m_cv.notify_all();
     }
 
     // A predicate which already has an access to the protected 
     // resource value. This is because most of custom predicates need
-    // to access the resource in order to work (ex: a predicate which 
+    // at least to read the resource in order to work (ex: a predicate which 
     // determines if a vector is available would need to look
     // at the vector's size)
+    // Remember that a predicate is always executed in a locked context,
+    // therefore any resource modification is assumed to be thread-safe.
     
-    class AccessPredicate
-        : public Predicate
+    class access_predicate
+        : public predicate
     {
-        friend class ProtectedResource<TResource>;
+        friend class protected_resource<t_resource>;
     protected:
-        TResource mResource;
+        t_resource m_res;
     public:
-        AccessPredicate() : mResource(nullptr) { }
-        AccessPredicate(const AccessPredicate& other) : mResource(other.mResource) { }
-        AccessPredicate& operator= (const AccessPredicate& other) { mResource = other.mResource; }
-        virtual ~AccessPredicate() { }
+        access_predicate() : m_res(nullptr) { }
+        access_predicate(const access_predicate& other) : m_res(other.m_res) { }
+        access_predicate& operator= (const access_predicate& other) { m_res = other.m_res; }
+        virtual ~access_predicate() { }
         virtual bool operator()() = 0;
-        
     };
 
-    template <typename TAccessPredicate>
-    TAccessPredicate CreateAccessiblePredicate()
+    template <typename t_access_predicate>
+    t_access_predicate create_accessible_predicate()
     {
-        static_assert ( std::is_base_of<AccessPredicate, TAccessPredicate>::value
-                      , "Your predicate must derive from ProtectedResource::AccessPredicate");
-        TAccessPredicate ap;
-        ap.mResource = mRes;
+        static_assert ( std::is_base_of<access_predicate, t_access_predicate>::value
+                      , "Your predicate must derive from protected_resource::access_predicate");
+        t_access_predicate ap;
+        ap.m_res = m_res;
         return ap;
     }
 
@@ -287,13 +288,13 @@ public:
 
     LockGuard GetLockGuard()
     {
-        Lock();
-        return LockGuard(mCurrentLock);
+        lock();
+        return LockGuard(m_current_lock);
     }
 
-    LockGuard WaitLockGuard(Predicate& predicate)
+    LockGuard WaitLockGuard(predicate& predicate)
     {
-        WaitLock(predicate);
-        return LockGuard(mCurrentLock);
+        wait_lock(predicate);
+        return LockGuard(m_current_lock);
     }
 };

@@ -46,45 +46,45 @@ public:
 };
 
 class DataPredicate
-    : public ProtectedResource<Data*>::AccessPredicate
+    : public protected_resource<Data*>::access_predicate
 {
 public:
 	virtual bool operator()() override
 	{
         std::cout << "testing predicate" << std::endl;
-        return mResource->available();
+        return m_res->available();
 	}
 };
 
 Data*                      g_data;
-ProtectedResource<Data*>*  g_protected_data;
+protected_resource<Data*>*  g_protected_data;
 
 void thread_main()
 {
 
 
-    ////pdata->Lock();
-    ////pdata->Get()->increase_value();
-    ////pdata->Release();
+    ////pdata->lock();
+    ////pdata->get()->increase_value();
+    ////pdata->release();
 
     //while(true)
     //{
-    //    //pdata->Get()->increase_value();
-    //    std::cout << GetThreadIdStr() << "waiting" << std::endl;
-    //    pdata->WaitLock();
-    //    pdata->Get()->increase_value();
-    //    //std::cout << GetThreadIdStr() << "wait lock obtained" << std::endl;
-    //    pdata->Release();
+    //    //pdata->get()->increase_value();
+    //    std::cout << get_thread_id_str() << "waiting" << std::endl;
+    //    pdata->wait_lock();
+    //    pdata->get()->increase_value();
+    //    //std::cout << get_thread_id_str() << "wait lock obtained" << std::endl;
+    //    pdata->release();
     //}
     
-    DataPredicate pred = g_protected_data->CreateAccessiblePredicate<DataPredicate>();
+    DataPredicate pred = g_protected_data->create_accessible_predicate<DataPredicate>();
 
 	while(true)
 	{
-        //g_protected_data->WaitLock(pred);
+        //g_protected_data->wait_lock(pred);
         auto guard = g_protected_data->WaitLockGuard(pred);
-		g_protected_data->Get()->process_event();
-		//g_protected_data->Release();
+		g_protected_data->get()->process_event();
+		//g_protected_data->release();
 	}
 }
 
@@ -123,7 +123,7 @@ int main()
 
     g_data = new Data;
     //g_pred = new DataPredicate(g_data);
-    g_protected_data = new ProtectedResource<Data*>(g_data);
+    g_protected_data = new protected_resource<Data*>(g_data);
 
     std::thread threads[THREADS_COUNT];
 
@@ -140,7 +140,7 @@ int main()
         switch(c)
         {
         case 'n':
-            g_protected_data->Notify();
+            g_protected_data->notify();
             break;
 
         case 'q':
@@ -155,9 +155,9 @@ int main()
     for(int i=0; i<THREADS_COUNT; ++i)
         threads[i].join();
 
-    g_protected_data->Lock();
-    delete g_protected_data->Get();
-    g_protected_data->Release();
+    g_protected_data->lock();
+    delete g_protected_data->get();
+    g_protected_data->release();
     delete g_protected_data;
     //delete g_pred
 
