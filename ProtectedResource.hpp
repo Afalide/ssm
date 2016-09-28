@@ -15,19 +15,9 @@ std::string GetThreadIdStr();
 // This is preferable to avoid the user pulling in all the
 // mutex and thread-related headers.
 
-// TODO: constraint the resource to be stored as a pointer
-// This is to avoid unwanted resource copies.
+// TODO: this is getting larger than expected, add unit testing
 
-// TODO: add a lock-guard-style accessor for the resource, to avoid
-// repeated Lock + Release (or Wait + Release) invocations (this
-// might lead to errors due to missed Release calls)
-// ie:
-//     MyClass c;
-//     ProtectedResource<MyClass> prot(c);
-//     prot.GetWithLockGuard().DoStuff();
-//     // no need to call Release here
-
-//TODO: do same thing with a Wait condition
+// TODO: refactor this file with snake case
 
 class Predicate
 {
@@ -181,10 +171,7 @@ public:
     void Lock()
     {
 		// Get a lock, do not sleep
-        DefaultPredicate wait_predicate;  // No predicate given, default one will sleep once.
-                                          // We are sensible to spurious wakes, but that's OK.
-                                          // It is up to the user to call the Wait or LockWait function
-                                          // within a loop and checking with it's own custom predicate.
+        DefaultPredicate wait_predicate;
         LockImpl(false, false, wait_predicate);
     }
 
@@ -238,5 +225,75 @@ public:
         return ap;
     }
 
-    // A structure which forwards the behavior of the lock 
+    // A structure which mimics the lock guard behavior.
+    // The lock is released upon destruction as a destructor side-effect.
+    // Because there are no mechanisms such as automatic reference counting,
+    // any copy created from this structure invalidates the old one.
+    // This is to make sure there is only one structure responsible
+    // of the lock guard deletion.
+
+    struct LockGuard
+    {
+        ulock* m_lock;
+
+        LockGuard(ulock* lock)
+            : m_lock(lock)
+        { }
+
+        LockGuard(LockGuard& other)
+            : m_lock(nullptr)
+        {
+            BuildFrom(other);
+            other.Clear();
+        }
+
+        LockGuard(LockGuard&& other)
+            : m_lock(nullptr)
+        {
+            BuildFrom(other);
+            other.Clear();
+        }
+
+        ~LockGuard()
+        {
+            if(nullptr != m_lock)
+                delete m_lock;
+
+            Clear();
+        }
+
+        LockGuard& operator=(const LockGuard& other)
+        {
+            BuildFrom(other);
+            other.Clear();
+        }
+
+        LockGuard& operator=(LockGuard&& other)
+        {
+            BuildFrom(other);
+            other.Clear();
+        }
+
+        void BuildFrom(const LockGuard& other)
+        {
+            m_lock = other.m_lock;
+        }
+
+        void Clear()
+        {
+            m_lock = nullptr;
+        }
+    };
+
+    LockGuard GetLockGuard()
+    {
+        Lock();
+        return LockGuard(mCurrentLock);
+    }
+
+    LockGuard WaitLockGuard(Predicate& predicate)
+    {
+        WaitLock(predicate);
+        return LockGuard(mCurrentLock);
+    }
 };

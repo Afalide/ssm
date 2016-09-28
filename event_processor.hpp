@@ -98,7 +98,7 @@ public:
 
     void wait_process_next()
     {
-        Predicate& pred = m_prot_queue.CreateAccessiblePredicate<event_queue_predicate>();
+        event_queue_predicate pred = m_prot_queue.CreateAccessiblePredicate<event_queue_predicate>();
         
         // Wait until an event is available and lock the queue
 
