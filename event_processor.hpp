@@ -2,7 +2,7 @@
 #pragma once
 
 #include <queue>
-#include "ProtectedResource.hpp"
+#include "protected_resource.hpp"
 #include "singleton.hpp"
 
 struct i_event

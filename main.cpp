@@ -3,7 +3,7 @@
 //#include "State.hpp"
 #include "context.hpp"
 #include <Windows.h>
-#include "ProtectedResource.hpp"
+#include "protected_resource.hpp"
 
 struct Data
 {
