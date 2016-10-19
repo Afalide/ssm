@@ -82,7 +82,7 @@ void thread_main()
 	while(true)
 	{
         //g_protected_data->wait_lock(pred);
-        auto guard = g_protected_data->WaitLockGuard(pred);
+        auto guard = g_protected_data->wait_lock_guard(pred);
 		g_protected_data->get()->process_event();
 		//g_protected_data->release();
 	}

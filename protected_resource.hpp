@@ -233,68 +233,68 @@ public:
     // This is to make sure there is only one structure responsible
     // of the lock guard deletion.
 
-    struct LockGuard
+    struct guard
     {
         ulock* m_lock;
 
-        LockGuard(ulock* lock)
+        guard(ulock* lock)
             : m_lock(lock)
         { }
 
-        LockGuard(LockGuard& other)
+        guard(guard& other)
             : m_lock(nullptr)
         {
-            BuildFrom(other);
-            other.Clear();
+            build_from(other);
+            other.clear();
         }
 
-        LockGuard(LockGuard&& other)
+        guard(guard&& other)
             : m_lock(nullptr)
         {
-            BuildFrom(other);
-            other.Clear();
+            build_from(other);
+            other.clear();
         }
 
-        ~LockGuard()
+        ~guard()
         {
             if(nullptr != m_lock)
                 delete m_lock;
 
-            Clear();
+            clear();
         }
 
-        LockGuard& operator=(const LockGuard& other)
+        guard& operator=(const guard& other)
         {
-            BuildFrom(other);
-            other.Clear();
+            build_from(other);
+            other.clear();
         }
 
-        LockGuard& operator=(LockGuard&& other)
+        guard& operator=(guard&& other)
         {
-            BuildFrom(other);
-            other.Clear();
+            build_from(other);
+            other.clear();
         }
 
-        void BuildFrom(const LockGuard& other)
+        void build_from(const guard& other)
         {
             m_lock = other.m_lock;
         }
 
-        void Clear()
+        void clear()
         {
             m_lock = nullptr;
         }
     };
 
-    LockGuard GetLockGuard()
+    guard get_lock_guard()
     {
         lock();
-        return LockGuard(m_current_lock);
+        return guard(m_current_lock);
     }
 
-    LockGuard WaitLockGuard(predicate& predicate)
+    guard wait_lock_guard(predicate& predicate)
     {
         wait_lock(predicate);
-        return LockGuard(m_current_lock);
+        return guard(m_current_lock);
     }
 };
