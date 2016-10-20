@@ -47,7 +47,7 @@ class protected_resource
     typedef std::lock_guard  <std::mutex> glock;
     typedef std::unique_lock <std::mutex> ulock;
 
-    t_resource                m_res;
+    t_resource               m_res;
     std::mutex               m_mutex;
     std::condition_variable  m_cv;
     ulock*                   m_current_lock;
@@ -76,8 +76,12 @@ public:
     {
         if(nullptr != m_current_lock)
         {
-            std::cout << get_thread_id_str() << "error, deleting a protected_resource while the resource is still being locked" << std::endl;
-            
+            #if defined(TINYSM_STRONG_CHECKS)
+            std::cout << get_thread_id_str() << "error, destroying a protected_resource while the resource is still being locked" << std::endl;
+            #else
+            std::cout << "error, destroying a protected_resource while the resource is still being locked" << std::endl;
+            #endif
+
             // Try to unlock anyways; the following might fail / crash / throw
 
             m_current_lock->release();
@@ -169,7 +173,7 @@ public:
 
     void lock()
     {
-		// get a lock, do not sleep
+		// Get a lock, do not sleep
         default_predicate wait_predicate; // Default predicate, always true. Unused anyway since
                                           // there is no wait.
         lock_impl(false, false, wait_predicate);
@@ -226,16 +230,18 @@ public:
         return ap;
     }
 
-    // A structure which mimics the lock guard behavior.
+    // A structure which mimics the std lock guard behavior.
     // The lock is released upon destruction as a destructor side-effect.
     // Because there are no mechanisms such as automatic reference counting,
     // any copy created from this structure invalidates the old one.
     // This is to make sure there is only one structure responsible
     // of the lock guard deletion.
 
-    struct guard
+    class guard
     {
         ulock* m_lock;
+
+    public:
 
         guard(ulock* lock)
             : m_lock(lock)
@@ -252,7 +258,9 @@ public:
             : m_lock(nullptr)
         {
             build_from(other);
-            other.clear();
+            other.clear(); // The move ctor should always clear the temporary's resources.
+                           // Anyways, the classic copy c-tor does the same because we
+                           // want only one living lock guard at a time.
         }
 
         ~guard()
@@ -289,7 +297,8 @@ public:
     guard get_lock_guard()
     {
         lock();
-        return guard(m_current_lock);
+        return guard(m_current_lock);  // Will be optimized, either with NRVO
+                                       // or by the move c-tor
     }
 
     guard wait_lock_guard(predicate& predicate)

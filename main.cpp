@@ -88,7 +88,7 @@ void thread_main()
 	}
 }
 
-#define THREADS_COUNT 3
+#define THREADS_COUNT 5
 
 
 struct Eva{};
