@@ -9,13 +9,6 @@ void do_all_tests()
     test1();
 }
 
-void test1()
-{
-    
-}
-
-
-
 //struct data
 //{
 //
