@@ -7,6 +7,7 @@
 void do_all_tests()
 {
     test1();
+    test2();
 }
 
 //struct data

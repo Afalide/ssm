@@ -2,6 +2,8 @@
 #include <iostream>
 #include "tests.hpp"
 
+//#include <vld.h>
+
 int main()
 {
     do_all_tests();

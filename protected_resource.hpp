@@ -76,17 +76,18 @@ public:
     {
         if(nullptr != m_current_lock)
         {
-            #if defined(TINYSM_STRONG_CHECKS)
-            std::cout << get_thread_id_str() << "error, destroying a protected_resource while the resource is still being locked" << std::endl;
-            #else
-            std::cout << "error, destroying a protected_resource while the resource is still being locked" << std::endl;
-            #endif
 
-            // Try to unlock anyways; the following might fail / crash / throw
+            // The mutex is currently locked
+            // This is not necessarily an error, because the thread which locked the resource
+            // is allowed to directly destroy the protected_resource instance without calling release()
+            // first (release() is called by this destructor)
+            // This only works if the thread which deletes the resource is the one which locked it.
+            // In other cases, it is an error (generated in the release() call)
 
-            m_current_lock->release();
-            delete m_current_lock;
-            m_mutex.unlock();
+            this->release();
+            //m_current_lock->release();
+            //delete m_current_lock;
+            //m_mutex.unlock();
         }
     }
 
@@ -102,11 +103,11 @@ public:
 
         if(nullptr == m_current_lock)
         {
-            std::cout << get_thread_id_str() << "error, accessing released resource" << std::endl;
+            std::cout << get_thread_id_str() << "error, accessing unlocked resource" << std::endl;
             // Maybe throw something
         }
 
-        std::cout << get_thread_id_str() << "obtaining resource" << std::endl;
+        //std::cout << get_thread_id_str() << "obtaining resource" << std::endl;
         return m_res;
     }
 
@@ -194,7 +195,7 @@ public:
     void notify()
     {
         glock lock(m_mutex);
-        std::cout << "notifying" << std::endl;
+        //std::cout << "notifying" << std::endl;
         m_cv.notify_all();
     }
 
@@ -239,23 +240,25 @@ public:
 
     class guard
     {
-        ulock* m_lock;
+        //ulock* m_lock;
+        typedef protected_resource<t_resource> pr_res;
+        pr_res* m_pr_res;
 
     public:
 
-        guard(ulock* lock)
-            : m_lock(lock)
+        guard(pr_res* pres)
+            : m_pr_res(pres)
         { }
 
         guard(guard& other)
-            : m_lock(nullptr)
+            : m_pr_res(nullptr)
         {
             build_from(other);
             other.clear();
         }
 
         guard(guard&& other)
-            : m_lock(nullptr)
+            : m_pr_res(nullptr)
         {
             build_from(other);
             other.clear(); // The move ctor should always clear the temporary's resources.
@@ -265,8 +268,9 @@ public:
 
         ~guard()
         {
-            if(nullptr != m_lock)
-                delete m_lock;
+            if(nullptr != m_pr_res)
+                m_pr_res->release();
+                //delete m_lock;
 
             clear();
         }
@@ -285,20 +289,20 @@ public:
 
         void build_from(const guard& other)
         {
-            m_lock = other.m_lock;
+            m_pr_res = other.m_pr_res;
         }
 
         void clear()
         {
-            m_lock = nullptr;
+            m_pr_res = nullptr;
         }
     };
 
     guard get_lock_guard()
     {
         lock();
-        return guard(m_current_lock);  // Will be optimized, either with NRVO
-                                       // or by the move c-tor
+        return guard(this);  // Will be optimized, either with NRVO
+                             // or by the move c-tor
     }
 
     guard wait_lock_guard(predicate& predicate)
