@@ -74,35 +74,7 @@
 //
 //};
 
-struct master_list
-{
-    std::list<i_event_list*> m_event_lists;
 
-    master_list()
-        : m_event_lists()
-    {
-    }
-
-    template <typename t_event>
-    void post(const t_event& ev)
-    {
-        event_list<t_event>::auto_instance()->add(ev);
-        m_event_lists.push_back(event_list<t_event>::auto_instance());
-    }
-
-    void process_next()
-    {
-        if(m_event_lists.size() == 0)
-        {
-            std::cout << "no list available (no event posted in any list)" << std::endl;
-            return;
-        }
-
-        i_event_list* evlist = m_event_lists.front();
-        m_event_lists.pop_front();
-        evlist->process_next();
-    }
-};
 
 template <typename t_start_state>
 struct master_state
@@ -112,18 +84,20 @@ struct master_state
     master_state()
         : m_start_state(nullptr)
     {
-//        m_start_state = new t_start_state;
+        m_start_state = new t_start_state;
 //        m_start_state->enter_hierarchy();
-        m_start_state = enter_in<t_start_state>();
+//        m_start_state = enter_in<t_start_state>();
     }
 
     ~master_state()
     {
 //        m_start_state->exit_hierarchy();
-//        delete m_start_state;
-        exit_from<>(m_start_state);
+        delete m_start_state;
+//        exit_from<>(m_start_state);
     }
 };
+
+
 
 int main()
 {

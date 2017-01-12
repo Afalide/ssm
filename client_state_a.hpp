@@ -9,7 +9,9 @@
 //struct state2;
 
 struct state1
-    : public state<state1, state2>
+//    : public state<state1, state2>
+    : public sm::basic_state<state1>
+    , public sm::has_child<state2>
 {
     state1()
     {
@@ -18,7 +20,7 @@ struct state1
 
     virtual ~state1()
     {
-        std::cout << "dtor state2" << std::endl;
+        std::cout << "dtor state1" << std::endl;
     }
 
     void on_enter()

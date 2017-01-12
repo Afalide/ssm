@@ -8,6 +8,115 @@ struct null_state
 {
 };
 
+
+namespace sm
+{
+
+////////////////////////////////////////////////////////////////////////////////
+
+struct i_resource
+{
+    virtual ~i_resource(){}
+//    virtual void create() = 0;
+//    virtual void destroy() = 0;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
+template <typename t_>
+struct resource
+    : public i_resource
+{
+    t_* m_res;
+
+    resource()
+        : m_res(new t_)
+    {
+    }
+
+    virtual ~resource()
+    {
+        delete m_res;
+    }
+
+//    virtual void create() override
+//    {
+//        m_res = new t_;
+//    }
+//
+//    virtual void destroy() override
+//    {
+//        delete m_res;
+//    }
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
+template <typename t_crt>
+struct basic_state
+{
+
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
+template <typename t_state>
+struct state_holder
+{
+    t_state* m_state;
+
+    state_holder()
+        : m_state(nullptr)
+    {}
+
+    virtual ~state_holder(){}
+
+    template <typename t_child_state>
+    void make_transit()
+    {
+
+    }
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
+template <typename t_child>
+struct has_child
+{
+//    t_child* m_child_state;
+    i_resource* m_state_res;
+
+    has_child()
+        : m_state_res(nullptr)
+    {
+        transit_child<t_child>();
+    }
+
+    virtual ~has_child()
+    {
+        delete m_state_res;
+    }
+
+    template <typename t_state>
+    void transit_child()
+    {
+        if(nullptr != m_state_res)
+            delete m_state_res;
+
+        m_state_res = new resource<t_state>;
+    }
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
 template <typename t_state>
 t_state* enter_in()
 {

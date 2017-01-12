@@ -5,10 +5,10 @@
 #include "state.hpp"
 //#include "client_state_a.hpp"
 
-struct state1;
+//struct state1;
 
 struct state2
-    : public state<state2, null_state, state1>
+//    : public state<state2, null_state, state1>
 {
     state2()
     {

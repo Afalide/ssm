@@ -85,4 +85,34 @@ struct event_list
     }
 };
 
+struct master_list
+{
+    std::list<i_event_list*> m_event_lists;
+
+    master_list()
+        : m_event_lists()
+    {
+    }
+
+    template <typename t_event>
+    void post(const t_event& ev)
+    {
+        event_list<t_event>::auto_instance()->add(ev);
+        m_event_lists.push_back(event_list<t_event>::auto_instance());
+    }
+
+    void process_next()
+    {
+        if(m_event_lists.size() == 0)
+        {
+            std::cout << "no list available (no event posted in any list)" << std::endl;
+            return;
+        }
+
+        i_event_list* evlist = m_event_lists.front();
+        m_event_lists.pop_front();
+        evlist->process_next();
+    }
+};
+
 #endif // EVENT_HPP
