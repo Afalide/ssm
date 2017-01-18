@@ -6,7 +6,7 @@
 //#include "client_state_a.hpp"
 
 struct state3
-     : public state<state3, null_state, state1>
+     : public sm::basic_state<state3>
 {
     state3()
     {

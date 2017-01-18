@@ -5,13 +5,15 @@
 #include "state.hpp"
 #include "client_events.hpp"
 #include "client_state_b.hpp"
+#include "client_state_c.hpp"
 
 //struct state2;
 
 struct state1
 //    : public state<state1, state2>
     : public sm::basic_state<state1>
-    , public sm::has_child<state2>
+    , public sm::slot<state2>
+    , public sm::slot<state3>
 {
     state1()
     {

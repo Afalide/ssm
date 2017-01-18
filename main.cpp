@@ -97,11 +97,17 @@ struct master_state
     }
 };
 
-
-
 int main()
 {
     master_state<state1> main_state;
+    state1* st1 = main_state.m_start_state;
+
+//    st1->on_enter_call_for_state();
+//    st1->on_enter_call_for_slot();
+
+    //cheat code to access a slot in a parent (remeber, a parent IS a slot, this is basic inheritance)
+//    sm::slot<state2>* slot_state2 = static_cast<sm::slot<state2>*>(st1);
+//    slot_state2->switch_holder<>();
 
 //    main_state.m_start_state->m_child_state->transit<state3>();
 
