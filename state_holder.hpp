@@ -10,8 +10,8 @@ struct i_state_holder
 {
     i_state_holder();
     virtual ~i_state_holder();
-//    virtual void create() = 0;
-//    virtual void destroy() = 0;
+    virtual void forward_on_enter() = 0;
+    virtual void forward_on_exit() = 0;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -25,24 +25,22 @@ struct state_holder
     state_holder()
         : m_state(new t_state)
     {
-//        create();
     }
 
     virtual ~state_holder()
     {
-//        destroy();
         delete m_state;
     }
 
-//    virtual void create() override
-//    {
-//        m_state = new t_state;
-//    }
-//
-//    virtual void destroy() override
-//    {
-//        delete m_state;
-//    }
+    virtual void forward_on_enter() override
+    {
+        m_state->on_enter();
+    }
+
+    virtual void forward_on_exit() override
+    {
+        m_state->on_exit();
+    }
 };
 
 ////////////////////////////////////////////////////////////////////////////////

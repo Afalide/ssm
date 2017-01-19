@@ -3,29 +3,10 @@
 #define SM_SLOT_HPP
 
 #include <iostream>
-#include "state_holder.hpp"
+#include "i_slot.hpp"
+
 
 namespace sm {
-
-////////////////////////////////////////////////////////////////////////////////
-
-struct i_slot
-{
-    i_state_holder* m_state_holder;
-
-    i_slot();
-
-    virtual ~i_slot();
-
-    template <typename t_state>
-    void switch_holder()
-    {
-        if(nullptr != m_state_holder)
-            delete m_state_holder;
-
-        m_state_holder = new state_holder<t_state>;
-    }
-};
 
 ////////////////////////////////////////////////////////////////////////////////
 

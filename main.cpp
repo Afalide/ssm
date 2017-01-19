@@ -97,10 +97,56 @@ struct master_state
     }
 };
 
+//struct common
+//{
+//    int mData;
+//
+//    common(){std::cout << "ctor common" << std::endl; mData = 10;}
+//    virtual ~common(){std::cout << "dtor common" << std::endl;}
+//
+//    void append(int val)
+//    {
+//        mData += val;
+//    }
+//
+//    void print_val()
+//    {
+//        std::cout << "value: " << mData << std::endl;
+//    }
+//};
+//
+//struct inter_a
+//    : public virtual common
+//{
+//    inter_a() {std::cout << "ctor inter_a" << std::endl;
+//               append(2);}
+//
+//    virtual ~inter_a(){std::cout << "dtor inter_a" << std::endl;}
+//};
+//
+//struct inter_b
+//    : public virtual common
+//{
+//    inter_b(){std::cout << "ctor inter_b" << std::endl;
+//              append(3);}
+//
+//    virtual ~inter_b(){std::cout << "dtor inter_b" << std::endl;}
+//};
+//
+//struct user
+//    : public inter_a
+//    , public inter_b
+//{
+//    user(){std::cout << "ctor user" << std::endl;}
+//    virtual ~user(){std::cout << "dtor user" << std::endl;}
+//};
+
 int main()
 {
+
+
     master_state<state1> main_state;
-    state1* st1 = main_state.m_start_state;
+//    state1* st1 = main_state.m_start_state;
 
 //    st1->on_enter_call_for_state();
 //    st1->on_enter_call_for_slot();
