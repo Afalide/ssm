@@ -16,7 +16,8 @@ struct slot
 {
     slot()
     {
-        switch_holder<t_start_state>();
+        switch_holder<t_start_state>(false);
+//        switch_holder_no_entries<t_start_state>();
     }
 
     virtual ~slot()

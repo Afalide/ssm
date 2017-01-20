@@ -9,6 +9,7 @@
 
 struct state2
 //    : public state<state2, null_state, state1>
+    : public sm::basic_state<state2>
 {
     state2()
     {

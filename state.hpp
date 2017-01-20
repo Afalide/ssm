@@ -7,6 +7,8 @@
 
 struct null_state
 {
+    void on_enter(){}
+    void on_exit(){}
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -45,7 +47,7 @@ struct basic_state
 
         assert(nullptr != m_slot); // Make sure you have assigned a slot to this state (this state must be aware of it's owner slot).
 
-        m_slot->switch_holder<t_state>();
+        m_slot->switch_holder<t_state>(true);
     }
 };
 

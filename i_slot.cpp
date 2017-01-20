@@ -5,6 +5,7 @@
 sm::i_slot::i_slot()
     : m_state_holder(nullptr)
 {
+    add_slot_ref(this);
 }
 
 sm::i_slot::~i_slot()

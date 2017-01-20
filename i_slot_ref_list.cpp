@@ -5,10 +5,12 @@
 sm::i_slot_ref_list::i_slot_ref_list()
     : m_slot_refs()
 {
+    std::cout << "ctor i_slot_ref_list" << std::endl;
 }
 
 sm::i_slot_ref_list::~i_slot_ref_list()
 {
+    std::cout << "dtor i_slot_ref_list" << std::endl;
 }
 
 void

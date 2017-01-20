@@ -13,158 +13,68 @@
 //
 //struct evb{};
 //struct evc{};
-//
-//struct state2;
 
-//struct state1
-//    : public state<state1,state2>
+
+//template <typename t_start_state>
+//struct master_state
 //{
-//    state1()
+//    t_start_state* m_start_state;
+//
+//    master_state()
+//        : m_start_state(nullptr)
 //    {
-////        event_list<eva>::auto_instance()->set_caller(new event_caller<state1, eva>(this));
-////        event_list<evb>::auto_instance()->set_caller(new event_caller<state1, evb>(this));
-//        std::cout << "state1 ctor" << std::endl;
+//        m_start_state = new t_start_state;
+////        m_start_state->enter_hierarchy();
+////        m_start_state = enter_in<t_start_state>();
 //    }
 //
-//    virtual ~state1()
+//    ~master_state()
 //    {
-//        std::cout << "state1 dtor" << std::endl;
+////        m_start_state->exit_hierarchy();
+//        delete m_start_state;
+////        exit_from<>(m_start_state);
 //    }
-//
-//    void on_enter()
-//    {
-//        std::cout << "enter state1" << std::endl;
-//    }
-//
-//    void on_exit()
-//    {
-//        std::cout << "exit state1" << std::endl;
-//    }
-//
-//    void handle(const eva&){std::cout << "state1 - eva" << std::endl;}
-//    void handle(evb){std::cout << "state1 - evb" << std::endl;}
 //};
 
-//struct state2
-//    : public state<state2>
-//{
-//    state2()
-//    {
-//        std::cout << "state2 ctor" << std::endl;
-//    }
-//
-//    virtual ~state2()
-//    {
-//        std::cout << "state2 dtor" << std::endl;
-//    }
-//
-//    void on_enter()
-//    {
-//        std::cout << "enter state2" << std::endl;
-//    }
-//
-//    void on_exit()
-//    {
-//        std::cout << "exit state2" << std::endl;
-//    }
-//};
-//
-//struct state3
-//{
-//
-//};
-
-
-
-template <typename t_start_state>
-struct master_state
+struct entry_state
+    : public sm::basic_state<entry_state>
 {
-    t_start_state* m_start_state;
-
-    master_state()
-        : m_start_state(nullptr)
-    {
-        m_start_state = new t_start_state;
-//        m_start_state->enter_hierarchy();
-//        m_start_state = enter_in<t_start_state>();
-    }
-
-    ~master_state()
-    {
-//        m_start_state->exit_hierarchy();
-        delete m_start_state;
-//        exit_from<>(m_start_state);
-    }
+    int init;
+    entry_state() {}
+    virtual ~entry_state(){}
+    void on_enter(){}
+    void on_exit(){}
 };
 
-//struct common
-//{
-//    int mData;
-//
-//    common(){std::cout << "ctor common" << std::endl; mData = 10;}
-//    virtual ~common(){std::cout << "dtor common" << std::endl;}
-//
-//    void append(int val)
-//    {
-//        mData += val;
-//    }
-//
-//    void print_val()
-//    {
-//        std::cout << "value: " << mData << std::endl;
-//    }
-//};
-//
-//struct inter_a
-//    : public virtual common
-//{
-//    inter_a() {std::cout << "ctor inter_a" << std::endl;
-//               append(2);}
-//
-//    virtual ~inter_a(){std::cout << "dtor inter_a" << std::endl;}
-//};
-//
-//struct inter_b
-//    : public virtual common
-//{
-//    inter_b(){std::cout << "ctor inter_b" << std::endl;
-//              append(3);}
-//
-//    virtual ~inter_b(){std::cout << "dtor inter_b" << std::endl;}
-//};
-//
-//struct user
-//    : public inter_a
-//    , public inter_b
-//{
-//    user(){std::cout << "ctor user" << std::endl;}
-//    virtual ~user(){std::cout << "dtor user" << std::endl;}
-//};
+struct master_state
+    : public sm::basic_state<master_state>
+    , public sm::slot<entry_state>
+{
+    master_state(){}
+    virtual ~master_state(){}
+    void on_enter(){}
+    void on_exit(){}
+};
 
 int main()
 {
+    master_state master;
+    sm::i_slot* master_slot = static_cast<sm::slot<entry_state>*>(&master);
+
+    sm::state_holder<entry_state>* entry_hld = static_cast<sm::state_holder<entry_state>*>(master_slot->m_state_holder);
+    entry_state* entry_st = entry_hld->m_state;
+
+    entry_st->transit<state1>();
 
 
-    master_state<state1> main_state;
-//    state1* st1 = main_state.m_start_state;
 
-//    st1->on_enter_call_for_state();
-//    st1->on_enter_call_for_slot();
-
-    //cheat code to access a slot in a parent (remeber, a parent IS a slot, this is basic inheritance)
-//    sm::slot<state2>* slot_state2 = static_cast<sm::slot<state2>*>(st1);
-//    slot_state2->switch_holder<>();
-
-//    main_state.m_start_state->m_child_state->transit<state3>();
-
+//    master_state<state1> main_state;
 //    state1 s1;
-//
-////    s1.
-//
+//    s1.transit<null_state>();
+
+////////////////////////////////////////////////////////////////////
+
 //    master_list master;
-//
-////
-////
 //    master.post(eva());
 //    master.post(evb());
 //    master.post(evb());
