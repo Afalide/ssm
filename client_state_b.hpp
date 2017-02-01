@@ -10,6 +10,7 @@
 struct state2
 //    : public state<state2, null_state, state1>
     : public sm::basic_state<state2>
+    , public handles<state2, eva>
 {
     state2()
     {
@@ -29,6 +30,11 @@ struct state2
     void on_exit()
     {
         std::cout << "exit state2" << std::endl;
+    }
+
+    void handle(eva)
+    {
+        std::cout << "state2 handle eva" << std::endl;
     }
 };
 

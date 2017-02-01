@@ -4,6 +4,7 @@
 
 #include <list>
 #include <cassert>
+#include <initializer_list>
 #include "auto_singleton.hpp"
 
 template <typename t_event>
@@ -56,6 +57,17 @@ struct event_list
         m_caller = caller;
     }
 
+    bool has_caller()
+    {
+        return(nullptr != m_caller);
+    }
+
+    void delete_caller()
+    {
+        if(has_caller())
+            delete m_caller;
+    }
+
     void add(const t_event& ev)
     {
         m_events.push_back(new t_event(ev));
@@ -82,6 +94,35 @@ struct event_list
         m_events.pop_front();
         m_caller->process(*ev);
         delete ev;
+    }
+};
+
+template <typename t_context_crt, typename t_event>
+struct handles
+{
+    bool m_caller_set;
+
+    handles()
+        : m_caller_set(false)
+    {
+        event_list<t_event>* evt_list = event_list<t_event>::auto_instance();
+
+        if(! evt_list->has_caller())
+        {
+            std::cout << "setting caller : " << __PRETTY_FUNCTION__ << std::endl;
+            evt_list->set_caller(new event_caller<t_context_crt, t_event>(static_cast<t_context_crt*>(this)));
+            m_caller_set = true;
+        }
+    }
+
+    virtual ~handles()
+    {
+        if(m_caller_set)
+        {
+            std::cout << "freeing caller : " << __PRETTY_FUNCTION__ << std::endl;
+            event_list<t_event>::auto_instance()->delete_caller();
+        }
+
     }
 };
 

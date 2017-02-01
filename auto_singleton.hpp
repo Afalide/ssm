@@ -9,7 +9,7 @@ struct auto_singleton
 
     auto_singleton()
     {
-        std::cout << __PRETTY_FUNCTION__ << std::endl;
+//        std::cout << __PRETTY_FUNCTION__ << std::endl;
     }
 
     virtual ~auto_singleton()

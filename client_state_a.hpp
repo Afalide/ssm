@@ -6,6 +6,7 @@
 #include "client_events.hpp"
 #include "client_state_b.hpp"
 #include "client_state_c.hpp"
+#include "event.hpp"
 
 //struct state2;
 
@@ -14,6 +15,7 @@ struct state1
     : public sm::basic_state<state1>
     , public sm::slot<state2>
     , public sm::slot<state3>
+    , public handles<state1, eva>
 {
     state1()
     {
@@ -33,6 +35,11 @@ struct state1
     void on_exit()
     {
         std::cout << "exit state1" << std::endl;
+    }
+
+    void handle(eva)
+    {
+        std::cout << "state1 handle eva" << std::endl;
     }
 };
 

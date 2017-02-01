@@ -39,8 +39,6 @@
 struct entry_state
     : public sm::basic_state<entry_state>
 {
-    int init;
-    entry_state() {}
     virtual ~entry_state(){}
     void on_enter(){}
     void on_exit(){}
@@ -50,7 +48,6 @@ struct master_state
     : public sm::basic_state<master_state>
     , public sm::slot<entry_state>
 {
-    master_state(){}
     virtual ~master_state(){}
     void on_enter(){}
     void on_exit(){}
@@ -58,13 +55,22 @@ struct master_state
 
 int main()
 {
-    master_state master;
-    sm::i_slot* master_slot = static_cast<sm::slot<entry_state>*>(&master);
+    state1 s1;
+    master_list mlist;
 
-    sm::state_holder<entry_state>* entry_hld = static_cast<sm::state_holder<entry_state>*>(master_slot->m_state_holder);
-    entry_state* entry_st = entry_hld->m_state;
+    mlist.post<>(eva());
 
-    entry_st->transit<state1>();
+    mlist.process_next();
+
+
+
+//    master_state master;
+//    sm::i_slot* master_slot = static_cast<sm::slot<entry_state>*>(&master);
+//
+//    sm::state_holder<entry_state>* entry_hld = static_cast<sm::state_holder<entry_state>*>(master_slot->m_state_holder);
+//    entry_state* entry_st = entry_hld->m_state;
+//
+//    entry_st->transit<state1>();
 
 
 
