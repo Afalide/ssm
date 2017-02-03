@@ -36,12 +36,20 @@
 //    }
 //};
 
+struct ev_go{};
+
 struct entry_state
     : public sm::basic_state<entry_state>
+    , public handles<entry_state, ev_go>
 {
     virtual ~entry_state(){}
     void on_enter(){}
     void on_exit(){}
+
+    void handle(ev_go)
+    {
+        transit<state1>();
+    }
 };
 
 struct master_state
@@ -55,12 +63,20 @@ struct master_state
 
 int main()
 {
-    state1 s1;
+
+    master_state mstate;
     master_list mlist;
 
-    mlist.post<>(eva());
-
+    mlist.post(ev_go());
     mlist.process_next();
+
+
+//    state1 s1;
+
+//
+//    mlist.post<>(eva());
+//
+//    mlist.process_next();
 
 
 

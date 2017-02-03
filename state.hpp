@@ -5,11 +5,11 @@
 #include <type_traits>
 #include "slot.hpp"
 
-struct null_state
-{
-    void on_enter(){}
-    void on_exit(){}
-};
+//struct null_state
+//{
+//    void on_enter(){}
+//    void on_exit(){}
+//};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -46,7 +46,6 @@ struct basic_state
         }
 
         assert(nullptr != m_slot); // Make sure you have assigned a slot to this state (this state must be aware of it's owner slot).
-
         m_slot->switch_holder<t_state>(true);
     }
 };
@@ -57,6 +56,7 @@ struct basic_state
 
 ////////////////////////////////////////////////////////////////////////////////
 
+/*
 template <typename t_state>
 t_state* enter_in()
 {
@@ -135,7 +135,7 @@ struct state
         static_cast<t_crt*>(this)->on_exit();
     }
 
-    template <typename t_state/*, typename std::enable_if<!std::is_same<typename t_state::child_state_t, null_state>::value,t_state>::type*/>
+    template <typename t_state>
     void transit_child()
     {
         if(nullptr != m_child_state)
@@ -155,5 +155,6 @@ struct state
         m_parent_state->transit_child<t_state>();
     }
 };
+*/
 
 #endif // STATE_HPP

@@ -109,7 +109,7 @@ struct handles
 
         if(! evt_list->has_caller())
         {
-            std::cout << "setting caller : " << __PRETTY_FUNCTION__ << std::endl;
+//            std::cout << "setting caller : " << __PRETTY_FUNCTION__ << std::endl;
             evt_list->set_caller(new event_caller<t_context_crt, t_event>(static_cast<t_context_crt*>(this)));
             m_caller_set = true;
         }
@@ -119,7 +119,7 @@ struct handles
     {
         if(m_caller_set)
         {
-            std::cout << "freeing caller : " << __PRETTY_FUNCTION__ << std::endl;
+//            std::cout << "freeing caller : " << __PRETTY_FUNCTION__ << std::endl;
             event_list<t_event>::auto_instance()->delete_caller();
         }
 
@@ -129,10 +129,26 @@ struct handles
 struct master_list
 {
     std::list<i_event_list*> m_event_lists;
+    std::list<i_event_list*> m_singletons_to_free;
 
     master_list()
         : m_event_lists()
+        , m_singletons_to_free()
     {
+    }
+
+    ~master_list()
+    {
+//        for(auto it=m_singletons_to_free.begin(); it!=m_singletons_to_free.end(); ++it)
+//            delete (*it);
+//
+//        m_singletons_to_free.clear();
+    }
+
+    template <typename t_event>
+    void declare()
+    {
+        m_singletons_to_free.push_back(event_list<t_event>::auto_instance());
     }
 
     template <typename t_event>

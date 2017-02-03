@@ -20,11 +20,25 @@ struct i_slot
     i_slot();
     virtual ~i_slot();
 
+    void forward_on_enter();
+    void forward_on_exit();
+
     template <typename t_state>
     void switch_holder(bool call_entries)
     {
         if(nullptr != m_state_holder)
+        {
+            if(call_entries)
+            {
+                // call slots' on_exit (only if this state has slots)
+                m_state_holder->forward_on_exit_on_slots();
+
+                // call state's on_enter
+                m_state_holder->forward_on_exit();
+            }
+
             delete m_state_holder;
+        }
 
         state_holder<t_state>* new_state_holder = new state_holder<t_state>;
         new_state_holder->m_state->m_slot = this;
@@ -32,45 +46,59 @@ struct i_slot
 
         if(call_entries)
         {
-            // call state on_enter
-            new_state_holder->m_state->on_enter();
+            // call state's on_enter
 
-            // call slot(s) on_enter (only if the state has slots)
+//            new_state_holder->m_state->on_enter();
+            m_state_holder->forward_on_enter();
 
-            std::cout << __PRETTY_FUNCTION__ << " t_state is_base_of i_slot_ref_list: " << std::is_base_of<sm::i_slot_ref_list, t_state>::value << std::endl;
+            // call slot's on_enter (only if the state has slots)
 
-            sfinae_call_on_enter_for_all_slots<t_state>(new_state_holder->m_state);
+            m_state_holder->forward_on_enter_on_slots();
 
-            // TODO: must put this in a SFINAE expression
-//            if (std::is_base_of<sm::i_slot_ref_list, t_state>::value)
-//            {
-//                static_cast<sm::i_slot_ref_list*>(new_state_holder) ->call_on_enter_for_all_slots();
-//            }
+//            std::cout << __PRETTY_FUNCTION__ << " t_state is_base_of i_slot_ref_list: " << std::is_base_of<sm::i_slot_ref_list, t_state>::value << std::endl;
+//            sfinae_call_on_enter_for_all_slots<t_state>(new_state_holder->m_state);
         }
     }
 
-    template <typename t_state>
-    void
-    sfinae_call_on_enter_for_all_slots(typename std::enable_if<std::is_base_of<sm::i_slot_ref_list, t_state>::value, t_state>::type * st)
-    {
-        // t_state derives from (at least one) sm::slot, so we call each substate on_enter
-        std::cout << __PRETTY_FUNCTION__ << "state has slots" << std::endl;
+//    template <typename t_state>
+//    void sfinae_call_on_enter_for_all_slots(typename std::enable_if<std::is_base_of<sm::i_slot_ref_list, t_state>::value, t_state>::type * st)
+//    {
+//        // t_state derives from (at least one) sm::slot, so we call each substate's on_enter
+//
+////        std::cout << __PRETTY_FUNCTION__ << "state has slots" << std::endl;
+//        st->call_on_enter_for_all_slots();
+//    }
 
-        st->call_on_enter_for_all_slots();
-    }
+//    template <typename t_state>
+//    void sfinae_call_on_enter_for_all_slots(typename std::enable_if<!std::is_base_of<sm::i_slot_ref_list, t_state>::value, t_state>::type * st)
+//    {
+//        // t_state doesn't derive from any sm::slot, it doesn't have any substate
+//        // Do nothing.
+//
+////        std::cout << __PRETTY_FUNCTION__ << "state has NO slots" << std::endl;
+//    }
 
-    template <typename t_state>
-    void
-    sfinae_call_on_enter_for_all_slots(typename std::enable_if<!std::is_base_of<sm::i_slot_ref_list, t_state>::value, t_state>::type * st)
-    {
-        // t_state doesn't derive from any sm::slot, it doesn't have any substate
-        // Do nothing.
+//    template <typename t_state>
+//    void
+//    sfinae_call_on_exit_for_all_slots(typename std::enable_if<std::is_base_of<sm::i_slot_ref_list, t_state>::value, t_state>::type * st)
+//    {
+//        // t_state derives from (at least one) sm::slot, so we call each substate's on_exit
+//
+////        std::cout << __PRETTY_FUNCTION__ << "state has slots" << std::endl;
+//        st->call_on_exit_for_all_slots();
+//    }
+//
+//    template <typename t_state>
+//    void
+//    sfinae_call_on_exit_for_all_slots(typename std::enable_if<!std::is_base_of<sm::i_slot_ref_list, t_state>::value, t_state>::type * st)
+//    {
+//        // t_state doesn't derive from any sm::slot, it doesn't have any substate
+//        // Do nothing.
+//
+////        std::cout << __PRETTY_FUNCTION__ << "state has NO slots" << std::endl;
+//    }
 
-        std::cout << __PRETTY_FUNCTION__ << "state has NO slots" << std::endl;
-    }
 
-    void forward_on_enter();
-    void forward_on_exit();
 };
 
 ////////////////////////////////////////////////////////////////////////////////
