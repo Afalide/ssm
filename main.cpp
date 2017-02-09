@@ -2,8 +2,11 @@
 #include <iostream>
 #include "event.hpp"
 //#include "state.hpp"
-#include "client_state_a.hpp"
-#include "client_state_c.hpp"
+//#include "client_state_a.hpp"
+//#include "client_state_c.hpp"
+
+#include "slot.hpp"
+#include "user_cases/state_p.hpp"
 
 //struct eva
 //{
@@ -36,63 +39,64 @@
 //    }
 //};
 
-struct ev_go{};
+//struct ev_go{};
+//
+//struct entry_state
+//    : public sm::basic_state<entry_state>
+//    , public handles<entry_state, ev_go>
+//{
+//    virtual ~entry_state(){}
+//    void on_enter(){}
+//    void on_exit(){}
+//
+//    void handle(ev_go)
+//    {
+//        transit<state1>();
+//    }
+//};
+//
+//struct master_state
+//    : public sm::basic_state<master_state>
+//    , public sm::slot<
+//{
+//    virtual ~master_state(){}
+//    void on_enter(){}
+//    void on_exit(){}
+//};
 
-struct entry_state
-    : public sm::basic_state<entry_state>
-    , public handles<entry_state, ev_go>
+template <typename t_start_state>
+struct state_launcher
 {
-    virtual ~entry_state(){}
-    void on_enter(){}
-    void on_exit(){}
+    typedef sm::state_holder<t_start_state> t_holder;
+    t_holder* m_holder;
 
-    void handle(ev_go)
+    state_launcher()
     {
-        transit<state1>();
+        m_holder = new t_holder;
+        m_holder->forward_on_enter();
+        m_holder->forward_on_enter_on_slots();
+    }
+
+    ~state_launcher()
+    {
+        m_holder->forward_on_exit_on_slots();
+        m_holder->forward_on_exit();
+        delete m_holder;
     }
 };
 
-struct master_state
-    : public sm::basic_state<master_state>
-    , public sm::slot<entry_state>
-{
-    virtual ~master_state(){}
-    void on_enter(){}
-    void on_exit(){}
-};
 
 int main()
 {
+    std::cout << "----------------------------- main: begin" << std::endl;
 
-    master_state mstate;
-    master_list mlist;
+    auto launcher = new state_launcher<state_p>;
 
-    mlist.post(ev_go());
-    mlist.process_next();
+    std::cout << "----------------------------- main: delete" << std::endl;
 
+    delete launcher;
 
-//    state1 s1;
-
-//
-//    mlist.post<>(eva());
-//
-//    mlist.process_next();
-
-
-
-//    master_state master;
-//    sm::i_slot* master_slot = static_cast<sm::slot<entry_state>*>(&master);
-//
-//    sm::state_holder<entry_state>* entry_hld = static_cast<sm::state_holder<entry_state>*>(master_slot->m_state_holder);
-//    entry_state* entry_st = entry_hld->m_state;
-//
-//    entry_st->transit<state1>();
-
-
-
-//    master_state<state1> main_state;
-//    state1 s1;
-//    s1.transit<null_state>();
+    std::cout << "----------------------------- main: done" << std::endl;
 
 ////////////////////////////////////////////////////////////////////
 
