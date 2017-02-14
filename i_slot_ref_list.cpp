@@ -17,6 +17,7 @@ void
 sm::i_slot_ref_list::add_slot_ref(i_slot* s)
 {
     m_slot_refs.push_back(s);
+//    std::cout << __FUNCTION__ << " with slot at " << std::hex << s << std::dec << std::endl;
 }
 
 void
@@ -25,7 +26,9 @@ sm::i_slot_ref_list::call_on_enter_for_all_slots()
     for(auto it = m_slot_refs.begin(); it != m_slot_refs.end(); ++it)
     {
         i_slot* slot = *it;
-        slot->forward_on_enter();
+        slot->fw_islot_on_enter();
+//        slot->on_enter_all();
+//        slot->forward_on_enter();
     }
 }
 
@@ -35,6 +38,7 @@ sm::i_slot_ref_list::call_on_exit_for_all_slots()
     for(auto it = m_slot_refs.rbegin(); it != m_slot_refs.rend(); ++it)
     {
         i_slot* slot = *it;
-        slot->forward_on_exit();
+        slot->fw_islot_on_exit();
+//        slot->forward_on_exit();
     }
 }

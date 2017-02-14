@@ -15,15 +15,34 @@ sm::i_slot::~i_slot()
 }
 
 void
-sm::i_slot::forward_on_enter()
+sm::i_slot::fw_islot_on_enter()
 {
-    assert(nullptr != m_state_holder);
-    m_state_holder->forward_on_enter();
+    m_state_holder->fw_sh_on_enter();
 }
 
 void
-sm::i_slot::forward_on_exit()
+sm::i_slot::fw_islot_on_exit()
 {
-    assert(nullptr != m_state_holder);
-    m_state_holder->forward_on_exit();
+    m_state_holder->fw_sh_on_exit();
 }
+
+
+//void
+//sm::i_slot::on_enter_all()
+//{
+//    m_state_holder->on_enter_all();
+//}
+
+//void
+//sm::i_slot::forward_on_enter()
+//{
+//    assert(nullptr != m_state_holder);
+//    m_state_holder->forward_on_enter();
+//}
+//
+//void
+//sm::i_slot::forward_on_exit()
+//{
+//    assert(nullptr != m_state_holder);
+//    m_state_holder->forward_on_exit();
+//}

@@ -11,8 +11,8 @@ struct state_p
 {
     state_p()            {std::cout << "state P ctor" << std::endl;}
     virtual ~state_p()   {std::cout << "state P dtor" << std::endl;}
-    void on_enter()      {std::cout << "state P .enter" << std::endl;}
-    void on_exit()       {std::cout << "state P .exit" << std::endl;}
+    void on_enter()      {std::cout << "state P  .enter" << std::endl;}
+    void on_exit()       {std::cout << "state P  .exit" << std::endl;}
 };
 
 #endif // user_case_state_p_hpp

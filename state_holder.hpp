@@ -12,11 +12,18 @@ struct i_state_holder
 {
     i_state_holder();
     virtual ~i_state_holder();
-    virtual void forward_on_enter() = 0;
-    virtual void forward_on_exit() = 0;
 
-    virtual void forward_on_enter_on_slots() = 0;
-    virtual void forward_on_exit_on_slots() = 0;
+    virtual void fw_sh_on_enter() = 0;
+    virtual void fw_sh_on_exit() = 0;
+
+//    virtual void on_enter_all() = 0;
+//    virtual void on_exit_all() = 0;
+//
+//    virtual void forward_on_enter() = 0;
+//    virtual void forward_on_exit() = 0;
+//
+//    virtual void forward_on_enter_on_slots() = 0;
+//    virtual void forward_on_exit_on_slots() = 0;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -37,22 +44,47 @@ struct state_holder
         delete m_state;
     }
 
-    virtual void forward_on_enter() override
+    virtual void fw_sh_on_enter() override
     {
         m_state->on_enter();
+        _on_enter_on_slots();
     }
 
-    virtual void forward_on_exit() override
+    virtual void fw_sh_on_exit() override
     {
+        _on_exit_on_slots();
         m_state->on_exit();
     }
 
-    virtual void forward_on_enter_on_slots() override
+
+//    virtual void on_enter_all() override
+//    {
+//        forward_on_enter();
+//        forward_on_enter_on_slots();
+//    }
+//
+//    virtual void on_exit_all() override
+//    {
+//        forward_on_exit();
+//        forward_on_exit_on_slots();
+//    }
+
+//    virtual void forward_on_enter() override
+//    {
+//        m_state->on_enter();
+//    }
+//
+//    virtual void forward_on_exit() override
+//    {
+//        m_state->on_exit();
+//    }
+
+    virtual void _on_enter_on_slots() //override
     {
         sfinae_call_on_enter_for_all_slots<t_state>(m_state);
     }
 
-    virtual void forward_on_exit_on_slots() override
+    virtual void _on_exit_on_slots() //override
     {
         sfinae_call_on_exit_for_all_slots<t_state>(m_state);
     }
@@ -65,7 +97,7 @@ struct state_holder
     }
 
     template <typename _t_state>
-    void sfinae_call_on_enter_for_all_slots(typename std::enable_if<!std::is_base_of<sm::i_slot_ref_list, _t_state>::value, _t_state>::type * st)
+    void sfinae_call_on_enter_for_all_slots(typename std::enable_if<!std::is_base_of<sm::i_slot_ref_list, _t_state>::value, _t_state>::type*)
     {
         // t_state doesn't derive from any sm::slot, it doesn't have any substate
         // Do nothing.
@@ -79,11 +111,12 @@ struct state_holder
     }
 
     template <typename _t_state>
-    void sfinae_call_on_exit_for_all_slots(typename std::enable_if<!std::is_base_of<sm::i_slot_ref_list, _t_state>::value, _t_state>::type * st)
+    void sfinae_call_on_exit_for_all_slots(typename std::enable_if<!std::is_base_of<sm::i_slot_ref_list, _t_state>::value, _t_state>::type*)
     {
         // t_state doesn't derive from any sm::slot, it doesn't have any substate
         // Do nothing.
     }
+
 };
 
 ////////////////////////////////////////////////////////////////////////////////

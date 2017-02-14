@@ -42,11 +42,15 @@ struct basic_state
     {
         if(nullptr == m_slot)
         {
-            std::cout << "error, this state doesn't have any declared slot (parent)" << std::endl;
+            std::cerr << "error, this state doesn't have any declared slot" << std::endl;
         }
 
         assert(nullptr != m_slot); // Make sure you have assigned a slot to this state (this state must be aware of it's owner slot).
-        m_slot->switch_holder<t_state>(true);
+//        m_slot->fw_islot_on_exit();
+        m_slot->switch_holder_and_call_entries<t_state>();
+//        m_slot->fw_islot_on_enter();
+
+        // This object is now deleted: make sure you don't use it anymore
     }
 };
 
