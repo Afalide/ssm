@@ -3,6 +3,8 @@
 #define STATE_HPP
 
 #include <type_traits>
+#include <cassert>
+
 #include "slot.hpp"
 
 //struct null_state
@@ -18,9 +20,23 @@ namespace sm
 
 ////////////////////////////////////////////////////////////////////////////////
 
-template <typename t_crt>
+struct no_parent{};
+
+////////////////////////////////////////////////////////////////////////////////
+
+//template <typename t_crt>
+//struct parent_state
+//{
+//    typedef t_crt t_parent;
+//}
+
+////////////////////////////////////////////////////////////////////////////////
+
+template <typename t_crt, typename t_parent=no_parent>
 struct basic_state
 {
+    typedef t_parent parent;
+
     i_slot* m_slot;
 
     basic_state()
@@ -40,6 +56,10 @@ struct basic_state
     template <typename t_state>
     void transit()
     {
+        // static assert ( (  t_state parent declared && this parent declared && parents are same ) xor ( no parent declared on this ) )
+
+        static_assert(std::is_same<parent, typename t_state::parent>::value, "You can only transit between states with the same parent");
+
         if(nullptr == m_slot)
         {
             std::cerr << "error, this state doesn't have any declared slot" << std::endl;
