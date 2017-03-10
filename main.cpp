@@ -1,178 +1,158 @@
 
 #include <iostream>
-#include "tests.hpp"
+#include "event.hpp"
+//#include "state.hpp"
+#include "client_state_a.hpp"
+#include "client_state_c.hpp"
 
-//#include <vld.h>
+//struct eva
+//{
+////    eva(){std::cout << "eva ctor" << std::endl;}
+////    eva(const eva&){std::cout << "eva ctor copy" << std::endl;}
+//};
+//
+//struct evb{};
+//struct evc{};
+//
+//struct state2;
+
+//struct state1
+//    : public state<state1,state2>
+//{
+//    state1()
+//    {
+////        event_list<eva>::auto_instance()->set_caller(new event_caller<state1, eva>(this));
+////        event_list<evb>::auto_instance()->set_caller(new event_caller<state1, evb>(this));
+//        std::cout << "state1 ctor" << std::endl;
+//    }
+//
+//    virtual ~state1()
+//    {
+//        std::cout << "state1 dtor" << std::endl;
+//    }
+//
+//    void on_enter()
+//    {
+//        std::cout << "enter state1" << std::endl;
+//    }
+//
+//    void on_exit()
+//    {
+//        std::cout << "exit state1" << std::endl;
+//    }
+//
+//    void handle(const eva&){std::cout << "state1 - eva" << std::endl;}
+//    void handle(evb){std::cout << "state1 - evb" << std::endl;}
+//};
+
+//struct state2
+//    : public state<state2>
+//{
+//    state2()
+//    {
+//        std::cout << "state2 ctor" << std::endl;
+//    }
+//
+//    virtual ~state2()
+//    {
+//        std::cout << "state2 dtor" << std::endl;
+//    }
+//
+//    void on_enter()
+//    {
+//        std::cout << "enter state2" << std::endl;
+//    }
+//
+//    void on_exit()
+//    {
+//        std::cout << "exit state2" << std::endl;
+//    }
+//};
+//
+//struct state3
+//{
+//
+//};
+
+struct master_list
+{
+    std::list<i_event_list*> m_event_lists;
+
+    master_list()
+        : m_event_lists()
+    {
+    }
+
+    template <typename t_event>
+    void post(const t_event& ev)
+    {
+        event_list<t_event>::auto_instance()->add(ev);
+        m_event_lists.push_back(event_list<t_event>::auto_instance());
+    }
+
+    void process_next()
+    {
+        if(m_event_lists.size() == 0)
+        {
+            std::cout << "no list available (no event posted in any list)" << std::endl;
+            return;
+        }
+
+        i_event_list* evlist = m_event_lists.front();
+        m_event_lists.pop_front();
+        evlist->process_next();
+    }
+};
+
+template <typename t_start_state>
+struct master_state
+{
+    t_start_state* m_start_state;
+
+    master_state()
+        : m_start_state(nullptr)
+    {
+//        m_start_state = new t_start_state;
+//        m_start_state->enter_hierarchy();
+        m_start_state = enter_in<t_start_state>();
+    }
+
+    ~master_state()
+    {
+//        m_start_state->exit_hierarchy();
+//        delete m_start_state;
+        exit_from<>(m_start_state);
+    }
+};
 
 int main()
 {
-    do_all_tests();
+    master_state<state1> main_state;
+
+//    main_state.m_start_state->m_child_state->transit<state3>();
+
+//    state1 s1;
+//
+////    s1.
+//
+//    master_list master;
+//
+////
+////
+//    master.post(eva());
+//    master.post(evb());
+//    master.post(evb());
+//
+//    master.process_next();
+//    master.process_next();
+//    master.process_next();
+//    master.process_next();
+//    master.process_next();
+
+//    event_list<eva>::auto_instance()->process_next();
+//    event_list<evb>::auto_instance()->process_next();
+//    event_list<evb>::auto_instance()->process_next();
 
     return 0;
 }
 
-//
-//#include <iostream>
-////#include "State.hpp"
-//#include "context.hpp"
-//#include <Windows.h>
-//#include "protected_resource.hpp"
-//
-//struct Data
-//{
-//private:
-//
-//    int val;
-//
-//public:
-//
-//    Data() 
-//        : val(0)
-//    {
-//	}
-//
-//    ~Data()
-//    {
-//    }
-//
-//	std::queue<int> list;
-//
-//	bool available()
-//	{
-//		return list.size() > 0;
-//	}
-//
-//	void add_event()
-//	{
-//		int val = rand();
-//		list.push(val);
-//		std::cout << "pushed event val " << val << std::endl;
-//	}
-//
-//    void process_event()
-//    {
-//		val = list.front();
-//		Sleep(100);
-//		std::cout << "processed event val " << val << std::endl;
-//		list.pop();
-//    }
-//};
-//
-//class DataPredicate
-//    : public protected_resource<Data*>::access_predicate
-//{
-//public:
-//	virtual bool operator()() override
-//	{
-//        std::cout << "testing predicate" << std::endl;
-//        return m_res->available();
-//	}
-//};
-//
-//Data*                      g_data;
-//protected_resource<Data*>*  g_protected_data;
-//
-//void thread_main()
-//{
-//
-//
-//    ////pdata->lock();
-//    ////pdata->get()->increase_value();
-//    ////pdata->release();
-//
-//    //while(true)
-//    //{
-//    //    //pdata->get()->increase_value();
-//    //    std::cout << get_thread_id_str() << "waiting" << std::endl;
-//    //    pdata->wait_lock();
-//    //    pdata->get()->increase_value();
-//    //    //std::cout << get_thread_id_str() << "wait lock obtained" << std::endl;
-//    //    pdata->release();
-//    //}
-//    
-//    DataPredicate pred = g_protected_data->create_accessible_predicate<DataPredicate>();
-//
-//	while(true)
-//	{
-//        //g_protected_data->wait_lock(pred);
-//        auto guard = g_protected_data->wait_lock_guard(pred);
-//		g_protected_data->get()->process_event();
-//		//g_protected_data->release();
-//	}
-//}
-//
-//#define THREADS_COUNT 5
-//
-//
-//struct Eva{};
-//struct Evb{};
-//struct Evc{};
-//
-//struct MyEventInterface
-//{
-//    virtual ~MyEventInterface(){}
-//    void handle(Eva){std::cout << "MyEventInterface default handle Eva" << std::endl;}
-//    void handle(Evb){std::cout << "MyEventInterface default handle Evb" << std::endl;}
-//    void handle(Evc){std::cout << "MyEventInterface default handle Evc" << std::endl;}
-//};
-//
-//struct StateIdle : public MyEventInterface
-//                 , public state<MyEventInterface>
-//{
-//    StateIdle()  {std::cout << "StateIdle enter" << std::endl;}
-//    ~StateIdle() {std::cout << "StateIdle exit" << std::endl;}
-//
-//    void handle(Eva){std::cout << "StateIdle handle Eva" << std::endl;}
-//};
-//
-//struct MyContext : public context<MyEventInterface>
-//{
-//};
-//
-//int main()
-//{
-//    //MyContext ctx;
-//    //ctx.perform_transit<StateIdle>();
-//
-//    g_data = new Data;
-//    //g_pred = new DataPredicate(g_data);
-//    g_protected_data = new protected_resource<Data*>(g_data);
-//
-//    std::thread threads[THREADS_COUNT];
-//
-//    for(int i=0; i<THREADS_COUNT; ++i)
-//        threads[i] = std::thread(thread_main);
-//
-//    char c;
-//    bool loop = true;
-//
-//    while(loop)
-//    {
-//        std::cin >> c;
-//
-//        switch(c)
-//        {
-//        case 'n':
-//            g_protected_data->notify();
-//            break;
-//
-//        case 'q':
-//            loop = false;
-//            break;
-//
-//        default:
-//            continue;
-//        }
-//    }
-//
-//    for(int i=0; i<THREADS_COUNT; ++i)
-//        threads[i].join();
-//
-//    g_protected_data->lock();
-//    delete g_protected_data->get();
-//    g_protected_data->release();
-//    delete g_protected_data;
-//    //delete g_pred
-//
-//    return 0;
-//}

@@ -1,5 +1,6 @@
 
-#include <iostream>
+#ifndef AUTO_SINGLETON_HPP
+#define AUTO_SINGLETON_HPP
 
 template <typename t_>
 struct auto_singleton
@@ -21,3 +22,6 @@ struct auto_singleton
         return ret;
     }
 };
+
+#endif // AUTO_SINGLETON_HPP
+
