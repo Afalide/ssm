@@ -24,8 +24,34 @@ struct state_launcher
     }
 };
 
+struct eva{};
+struct evb{};
+struct evc{};
+struct evd{};
+struct eve{};
+
+struct myobserver
+    : public handles<myobserver, eva, evb, evc>
+{
+    void handle(eva) {std::cout << "myobserver eva" << std::endl;}
+    void handle(evb) {std::cout << "myobserver evb" << std::endl;}
+    void handle(evc) {std::cout << "myobserver evc" << std::endl;}
+};
+
+struct myotherobserver
+    : public handles<myotherobserver, eva, evd, eve>
+{
+    void handle(eva) {std::cout << "myobserver eva" << std::endl;}
+    void handle(evd) {std::cout << "myobserver evd" << std::endl;}
+    void handle(eve) {std::cout << "myobserver eve" << std::endl;}
+};
+
+
 int main()
 {
+    myobserver obs;
+    myotherobserver oobs;
+
     std::cout << "----------------------------- main: begin" << std::endl;
 
     auto launcher = new state_launcher<state_p>;

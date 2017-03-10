@@ -4,6 +4,7 @@
 
 #include <list>
 #include <cassert>
+#include <vector>
 #include <initializer_list>
 #include "auto_singleton.hpp"
 
@@ -39,6 +40,7 @@ struct event_caller
 struct i_event_list
 {
     virtual ~i_event_list(){}
+    virtual void delete_caller() = 0;
     virtual void process_next() = 0;
 };
 
@@ -62,10 +64,13 @@ struct event_list
         return(nullptr != m_caller);
     }
 
-    void delete_caller()
+    void delete_caller() override
     {
         if(has_caller())
+        {
             delete m_caller;
+            m_caller = nullptr;
+        }
     }
 
     void add(const t_event& ev)
@@ -97,32 +102,134 @@ struct event_list
     }
 };
 
-template <typename t_context_crt, typename t_event>
-struct handles
+//template <typename t_context_crt, typename t_event>
+//struct handles
+//{
+//    bool m_caller_set;
+//
+//    handles()
+//        : m_caller_set(false)
+//    {
+//        event_list<t_event>* evt_list = event_list<t_event>::auto_instance();
+//
+//        if(! evt_list->has_caller())
+//        {
+//            evt_list->set_caller(new event_caller<t_context_crt, t_event>(static_cast<t_context_crt*>(this)));
+//            m_caller_set = true;
+//        }
+//    }
+//
+//    virtual ~handles()
+//    {
+//        if(m_caller_set)
+//        {
+//            event_list<t_event>::auto_instance()->delete_caller();
+//        }
+//    }
+//};
+
+struct i_event_list_container
 {
-    bool m_caller_set;
+    std::vector<i_event_list*> m_event_lists;
 
-    handles()
-        : m_caller_set(false)
+    i_event_list_container()
+        : m_event_lists()
     {
-        event_list<t_event>* evt_list = event_list<t_event>::auto_instance();
+    }
 
-        if(! evt_list->has_caller())
-        {
-//            std::cout << "setting caller : " << __PRETTY_FUNCTION__ << std::endl;
-            evt_list->set_caller(new event_caller<t_context_crt, t_event>(static_cast<t_context_crt*>(this)));
-            m_caller_set = true;
-        }
+    virtual ~i_event_list_container()
+    {
+    }
+
+    void add(i_event_list* lst)
+    {
+        m_event_lists.push_back(lst);
+    }
+
+    void forward_delete_all_callers()
+    {
+        for(auto it=m_event_lists.begin(); it!=m_event_lists.end(); ++it)
+            (*it)->delete_caller();
+    }
+};
+
+//template <typename t_context, typename t_event >
+//void declare_handle(t_context* ctx, i_event_list_container* cont)
+//{
+//    event_list<t_event>* evt_list = event_list<t_event>::auto_instance();
+//    if(! evt_list->has_caller())
+//    {
+//        std::cout << "setting caller " << __PRETTY_FUNCTION__ << std::endl;
+//        evt_list->set_caller(new event_caller<t_context, t_event>(ctx));
+//        cont->add(evt_list);
+//    }
+//}
+
+//template <typename t_context, typename t_event, typename... t_more_events>
+//void declare_handle(t_context* ctx, i_event_list_container* cont)
+//{
+//    event_list<t_event>* evt_list = event_list<t_event>::auto_instance();
+//
+//    if(! evt_list->has_caller())
+//    {
+//        std::cout << "setting caller " << __PRETTY_FUNCTION__ << std::endl;
+//        evt_list->set_caller(new event_caller<t_context, t_event>(ctx));
+//        cont->add(evt_list);
+//    }
+//
+//    declare_handle<t_context, t_more_events...>(ctx, cont);
+//}
+
+
+template <typename t_context, typename t_event>
+void declare_handle_impl(t_context* context, i_event_list_container* container)
+{
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
+
+    event_list<t_event>* evt_list = event_list<t_event>::auto_instance();
+
+    if(! evt_list-> has_caller())
+    {
+        std::cout << __PRETTY_FUNCTION__ << " setting caller" << std::endl;
+        evt_list->set_caller(new event_caller<t_context, t_event>(context));
+        container->add(evt_list);
+        return;
+    }
+
+    std::cout << __PRETTY_FUNCTION__ << " a class is already registered as a caller for this event type" << std::endl;
+}
+
+template <typename t_context>
+void declare_handle(t_context* context, i_event_list_container* container)
+{
+    // Called when no event can be extracted (the list was emptied)
+    // Do nothing.
+}
+
+template <typename t_context, typename t_event, typename ... t_events>
+void declare_handle(t_context* context, i_event_list_container* container)
+{
+    // Called when an event has been taken (extracted) from the list
+    // Also called when the list is empty due to this extraction, which
+    // is fine (the next call will fail to extract an event from the list,
+    // see the function above).
+
+    declare_handle_impl   <t_context, t_event>(context, container);
+    declare_handle        <t_context, t_events ...>(context, container);
+}
+
+template <typename t_context, typename... t_events>
+struct handles
+    : public i_event_list_container
+{
+    handles()
+    {
+        declare_handle<t_context, t_events...>(static_cast<t_context*>(this), this);
     }
 
     virtual ~handles()
     {
-        if(m_caller_set)
-        {
-//            std::cout << "freeing caller : " << __PRETTY_FUNCTION__ << std::endl;
-            event_list<t_event>::auto_instance()->delete_caller();
-        }
-
+        forward_delete_all_callers();
     }
 };
 
