@@ -5,6 +5,7 @@
 #include <list>
 #include <cassert>
 #include <vector>
+#include <map>
 #include <initializer_list>
 #include "auto_singleton.hpp"
 
@@ -200,7 +201,7 @@ void declare_handle_impl(t_context* context, i_event_list_container* container)
 }
 
 template <typename t_context>
-void declare_handle(t_context* context, i_event_list_container* container)
+void declare_handle(t_context* /*context*/, i_event_list_container* /*container*/)
 {
     // Called when no event can be extracted (the list was emptied)
     // Do nothing.
@@ -236,7 +237,8 @@ struct handles
 struct master_list
 {
     std::list<i_event_list*> m_event_lists;
-    std::list<i_event_list*> m_singletons_to_free;
+    //std::list<i_event_list*> m_singletons_to_free;
+    std::map<i_event_list*, bool> m_singletons_to_free;
 
     master_list()
         : m_event_lists()
@@ -250,19 +252,24 @@ struct master_list
 //            delete (*it);
 //
 //        m_singletons_to_free.clear();
+
+        for(auto it=m_singletons_to_free.begin(); it!=m_singletons_to_free.end(); ++it)
+            delete (it->first);
     }
 
-    template <typename t_event>
-    void declare()
-    {
-        m_singletons_to_free.push_back(event_list<t_event>::auto_instance());
-    }
+//    template <typename t_event>
+//    void declare()
+//    {
+//        //m_singletons_to_free.push_back(event_list<t_event>::auto_instance());
+//    }
 
     template <typename t_event>
     void post(const t_event& ev)
     {
-        event_list<t_event>::auto_instance()->add(ev);
-        m_event_lists.push_back(event_list<t_event>::auto_instance());
+        event_list<t_event>* evlist = event_list<t_event>::auto_instance();
+        evlist->add(ev);
+        m_event_lists.push_back(evlist);
+        m_singletons_to_free[evlist] = true;
     }
 
     void process_next()
