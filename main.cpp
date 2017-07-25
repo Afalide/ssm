@@ -4,13 +4,17 @@
 #include <type_traits>
 #include <limits>
 
+struct i_state_dtor;
 struct i_slot;
 
 struct i_state
 {
+	i_state_dtor* m_dtor;
+
     i_slot* m_owner;
     i_state()
         : m_owner (nullptr)
+		, m_dtor (nullptr)
     { }
     virtual ~i_state(){}
     i_state(const i_state& other) = delete;
@@ -31,24 +35,23 @@ struct i_slot
     virtual void create_all_slots() = 0;
     virtual void delete_all_slots() = 0;
 
-//    template <typename t_old_state, typename t_new_state>
-//    void switch_state(unsigned int idx)
-//    {
-//        // Delete the old state
-//
-//        t_old_state* old_state = static_cast<t_old_state*> (m_states[idx]);
-//        sfinae_delete_all_slots_of<t_old_state>(old_state);
-//        delete old_state;
-//        m_states[idx] = nullptr;
-//
-//        // Replace it with the new one
-//
-//        t_new_state* new_state = new t_new_state;
-//        sfinae_create_all_slots_of<t_new_state>(new_state);
-//        m_states[idx] = new_state;
-//        new_state->m_owner = this;
-//        new_state->
-//    }
+
+
+    template <typename t_old_state, typename t_new_state>
+    void switch_state(unsigned int idx)
+    {
+        // Delete the old state
+
+		//delete_state_impl<t_old_state>::impl(idx, this);
+
+		t_old_state* old_state = dynamic_cast<t_old_state*>(m_states[idx]);
+		assert(nullptr != old_state);
+		old_state->m_dtor->perform_delete(old_state);
+
+        // Replace it with the new one
+
+		create_state_impl<t_new_state>::impl(idx, this);
+    }
 };
 
 // SFINAE functions to create and delete a state's children
@@ -217,6 +220,48 @@ struct delete_state_impl<t_state>
     }
 };
 
+// Provides an destructor for a specific state
+// That implementation can be passed as a pointer 
+// to deffer it's execution
+
+struct i_state_dtor
+{
+	virtual ~i_state_dtor(){}
+	virtual void perform_delete(i_state*) = 0;
+};
+
+template <typename t_state>
+struct state_dtor : public i_state_dtor
+{
+	virtual void perform_delete(i_state* st) override
+	{
+		t_state* true_type_state = dynamic_cast<t_state*>(st);
+		assert(nullptr != true_type_state);
+
+		//t_state* true_type_state = static_cast<t_state*>(st);  // Cheaper, use this form for release
+
+		// Use the SFINAE form to determine if the child states must also be deleted
+		sfinae_delete_all_slots_of<t_state>(true_type_state);
+
+		// Keep the owner's infos
+
+		i_slot* owner = st->m_owner;
+		unsigned int idx = true_type_state->m_slot_pos;
+
+		// Update the owner
+
+		owner->m_states[idx] = nullptr;
+
+		// Delete the state
+
+		delete st;
+
+		// Delete ourselves, the state object won't do it for us
+
+		delete this;
+	}
+};
+
 // Slot class
 
 template <typename...t_states>
@@ -244,7 +289,14 @@ struct slot
     {
 //        std::cout << __PRETTY_FUNCTION__<< std::endl;
         //delete_all_slots_extract<0, t_states...>(this);
-        delete_state_impl<t_states...>::impl(0, this);
+        //delete_state_impl<t_states...>::impl(0, this);
+
+		for (unsigned int i = 0; i < sizeof...(t_states); ++i)
+		{
+			m_states[i]->m_dtor->perform_delete(m_states[i]);
+			m_states[i] = nullptr;
+		}
+
         delete[] m_states;
         m_states = nullptr;
     }
@@ -260,18 +312,23 @@ struct state : public i_state
     state()
         : m_slot_pos(std::numeric_limits<unsigned int>::max())
     {
+		m_dtor = new state_dtor<t_crt>;
     }
 
     virtual ~state()
     {
+		//delete m_dtor;  // The dtor object will delete itself upon execution
     }
 
-//    template <typename t_new_state>
-//    void go()
-//    {
-//        assert(nullptr != m_owner);
-//        m_owner->
-//    }
+    template <typename t_new_state>
+    void go()
+    {
+        assert(nullptr != m_owner);
+		m_owner->switch_state<t_crt, t_new_state>(m_slot_pos);
+        
+		//delete_state_impl<t_crt>::impl(m_slot_pos, m_owner);
+		//create_state_impl<t_new_state>::impl(m_slot_pos, m_owner);
+    }
 };
 
 // Main SM class
@@ -343,11 +400,22 @@ struct state_c : public state<state_c>
     virtual ~state_c(){std::cout << "exit " << __FUNCTION__ << std::endl;}
 };
 
+struct state_d : public state<state_d>
+{
+	state_d() { std::cout << "enter " << __FUNCTION__ << std::endl; }
+	virtual ~state_d() { std::cout << "exit " << __FUNCTION__ << std::endl; }
+};
+
 int main()
 {
     std::cout << "main begin" << std::endl;
 
     state_machine<boss> sm;
+
+	boss* state_boss = dynamic_cast<boss*> (sm.m_states[0]);
+	state_b* sb = dynamic_cast<state_b*>(state_boss->m_states[1]);
+
+	sb->go<state_d>();
 
     std::cout << "main end" << std::endl;
     return 0;
