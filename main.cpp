@@ -9,14 +9,25 @@ struct i_slot;
 struct i_state
 {
     i_slot* m_owner;
+    i_state()
+        : m_owner (nullptr)
+    { }
     virtual ~i_state(){}
+    i_state(const i_state& other) = delete;
+    i_state& operator=(const i_state& other) = delete;
 };
 
 struct i_slot
 {
     i_state** m_states;
 
+    i_slot()
+        : m_states(nullptr)
+    {}
     virtual ~i_slot(){}
+    i_slot(const i_slot&) = delete;
+    i_slot& operator=(const i_slot&) = delete;
+
     virtual void create_all_slots() = 0;
     virtual void delete_all_slots() = 0;
 
@@ -202,7 +213,7 @@ struct delete_state_impl<t_state>
         // Delete the state
 
         delete st;
-        parent_slot->m_states[idx] = nullptr;
+        owner->m_states[idx] = nullptr;
     }
 };
 
@@ -232,7 +243,8 @@ struct slot
     virtual void delete_all_slots() override
     {
 //        std::cout << __PRETTY_FUNCTION__<< std::endl;
-        delete_all_slots_extract<0, t_states...>(this);
+        //delete_all_slots_extract<0, t_states...>(this);
+        delete_state_impl<t_states...>::impl(0, this);
         delete[] m_states;
         m_states = nullptr;
     }
