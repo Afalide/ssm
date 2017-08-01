@@ -46,8 +46,6 @@ struct i_slot
     virtual void create_all_slots() = 0;
     virtual void delete_all_slots() = 0;
 
-
-
     template <typename t_old_state, typename t_new_state>
     void switch_state(unsigned int idx)
     {
@@ -69,7 +67,7 @@ struct i_slot
 // if and only if the given state has children
 
 template <typename _t_state>
-void sfinae_create_all_slots_of(typename std::enable_if<std::is_base_of<i_slot, _t_state>::value, _t_state>::type* st)
+inline void sfinae_create_all_slots_of(typename std::enable_if<std::is_base_of<i_slot, _t_state>::value, _t_state>::type* st)
 {
     st->create_all_slots();
 }
@@ -80,7 +78,7 @@ inline void sfinae_create_all_slots_of(typename std::enable_if<!std::is_base_of<
 }
 
 template <typename _t_state>
-void sfinae_delete_all_slots_of(typename std::enable_if<std::is_base_of<i_slot, _t_state>::value, _t_state>::type* st)
+inline void sfinae_delete_all_slots_of(typename std::enable_if<std::is_base_of<i_slot, _t_state>::value, _t_state>::type* st)
 {
     st->delete_all_slots();
 }
@@ -275,9 +273,6 @@ struct state : public i_state
     {
         assert(nullptr != m_owner);
 		m_owner->switch_state<t_crt, t_new_state>(m_slot_pos);
-
-		//delete_state_impl<t_crt>::impl(m_slot_pos, m_owner);
-		//create_state_impl<t_new_state>::impl(m_slot_pos, m_owner);
     }
 };
 
