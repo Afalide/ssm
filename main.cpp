@@ -1,9 +1,6 @@
 
 #include <mm/state.hpp>
-
-////////////////////////////////////////////////////////////////////
-// User space
-////////////////////////////////////////////////////////////////////
+#include <mm/observer.hpp>
 
 struct state_a;
 struct state_b;
@@ -11,12 +8,19 @@ struct state_b1;
 struct state_b2;
 struct state_c;
 
+struct evt_a {};
+
 struct boss
     : public mm::state<boss>
     , public mm::slot<state_a, state_b, state_c>
+    , public mm::handles<boss, evt_a>
 {
     boss(){std::cout << "enter " << __FUNCTION__ << std::endl;}
     virtual ~boss(){std::cout << "exit " << __FUNCTION__ << std::endl;}
+    void handle (evt_a)
+    {
+        std::cout << "boss state evt a" << std::endl;
+    }
 };
 
 struct state_a : public mm::state<state_a>
@@ -66,6 +70,10 @@ int main()
 	state_b* sb = dynamic_cast<state_b*>(state_boss->m_states[1]);
 
 	sb->go<state_d>();
+
+    mm::master_list mlist;
+    mlist.post(evt_a());
+    mlist.process_next();
 
     std::cout << "main end" << std::endl;
     return 0;
